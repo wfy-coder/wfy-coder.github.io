@@ -1,0 +1,292 @@
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Montserrat', 'Helvetica Neue', sans-serif;
+        }
+
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .button-wrapper {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .ghost-btn {
+            pointer-events: auto;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 400;
+            letter-spacing: 3px;
+            padding: 14px 42px;
+            border-radius: 40px;
+            text-transform: uppercase;
+            cursor: pointer;
+            backdrop-filter: blur(0px);
+            transition: all 0.25s ease;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+            text-decoration: none;
+            user-select: none;
+        }
+        .ghost-btn {
+            position: absolute;
+            left: 150px;     /* 距离左侧30px */
+            margin-top:150px;
+        }
+
+        .ghost-btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: white;
+            box-shadow: 0 0 18px rgba(255, 255, 255, 0.15);
+
+        }
+
+        .ghost-btn:active {
+            transform: scale(0.98);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-caption {
+            position: fixed;
+            bottom: 25px;
+            right: 30px;
+            z-index: 2;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            pointer-events: none;
+            font-weight: 300;
+        }
+
+        .site-title {
+            position: fixed;
+            top: 200px;
+            left: 150px;
+            z-index: 2;
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 8rem;
+            font-weight: 300;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            pointer-events: none; /* 避免遮挡按钮交互 */
+            font-family: 'Montserrat', sans-serif;
+            text-shadow: 0 0 10px rgba(255,255,255,0.2);
+        }
+
+.text-block {
+    position: fixed;          /* 固定定位，相对视口 */
+    top: 50%;                 /* 垂直居中 */
+    left: 50%;                /* 水平居中 */
+    transform: translate(-50%, -50%); /* 精确居中 */
+    z-index: 2;               /* 位于画布上方，与按钮同级 */
+    margin-top: 150px;
+    width: 80%;               /* 宽度自适应，最大不超过 700px */
+    max-width: 700px;         /* 限制最大宽度，避免行太长 */
+    padding: 20px 25px;       /* 内边距，让文字不贴边 */
+    
+    color: rgba(255, 255, 255, 0.85); /* 半透明白色 */
+    font-family: 'Montserrat', 'Segoe UI', sans-serif;
+    font-size: 1.1rem;        /* 基础字号，可按需调整 */
+    font-weight: 300;         /* 细体，与整体风格一致 */
+    line-height: 1.7;         /* 行高较大，提升多行可读性 */
+    letter-spacing: 0.5px;    /* 轻微字间距 */
+    text-align: center;       /* 居中对齐（也可改为 left/right） */
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.2); /* 微光晕，增强对比 */
+    
+
+    user-select: none;        /* 禁止选中文本（如需要可移除） */
+    
+    /* 可选：添加半透明黑色背景层，进一步提升文字可读性 */
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    backdrop-filter: blur(2px); /* 轻微背景模糊，突出文字 */
+}
+
+/* 如果希望段落之间有一定间距 */
+.text-block p {
+    margin: 0 0 1em 0;        /* 段落底部间距 */
+}
+.text-block p:last-child {
+    margin-bottom: 0;
+}
+/* 基础链接样式 */
+a {
+    color: rgba(255, 255, 255, 0.85);      /* 半透明白色 */
+    text-decoration: none;                  /* 去掉默认下划线 */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3); /* 细下划线，更精致 */
+    transition: all 0.2s ease;
+    font-weight: 400;
+}
+
+/* 悬停效果 */
+a:hover {
+    color: white;                           /* 变为纯白 */
+    border-bottom-color: rgba(255, 255, 255, 0.9); /* 下划线更亮 */
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.5); /* 增加发光感 */
+}
+
+/* 访问过的链接（可选，保持风格一致） */
+a:visited {
+    color: rgba(255, 255, 255, 0.6);        /* 略微变暗，仍保持协调 */
+}
+
+/* 激活（点击瞬间）效果 */
+a:active {
+    color: rgba(255, 255, 255, 1);
+    border-bottom-color: white;
+    text-shadow: 0 0 12px white;
+}
+/* 画廊容器：固定定位，水平居中，距离顶部50px */
+.image-gallery {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 50px;           /* 与原 margin-top 一致 */
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;            /* 允许换行 */
+    gap: 20px;                  /* 图片框间距 */
+    justify-content: center;    /* 水平居中 */
+    align-items: center;        /* 垂直居中（可选） */
+    max-width: 90vw;            /* 限制最大宽度，避免溢出 */
+    pointer-events: auto;       /* 确保可点击（如需点击穿透请修改） */
+}
+
+/* 单个图片框样式 - 自适应图片原始大小 */
+.image-frame {
+    /* 移除固定的 width 和 height */
+    display: inline-block;        /* 使框大小适应内容，且可并排 */
+	overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-radius: 20px;
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.1);
+    background-color: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(3px);
+    transition: box-shadow 0.3s ease;
+    /* 防止 flex 压缩（如果父容器是 flex） */
+    flex-shrink: 0;
+    /* 可选：限制最大尺寸，避免图片过大超出屏幕（会缩放） */
+    /* max-width: 90vw; */
+    /* max-height: 80vh; */
+}
+
+/* 图片本身 - 原始尺寸 */
+.image-frame img {
+    width: auto;                  /* 保持原始宽度 */
+    height: auto;                 /* 保持原始高度 */
+    display: block;               /* 去除图片底部的空白间隙 */
+    /* 移除 object-fit */
+}
+
+/* 悬停效果 */
+.image-frame:hover {
+    border-color: white;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+}
+
+/* 占位符样式（如使用 placeholder 类） */
+.image-frame.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 2rem;
+    font-weight: 300;
+}
+
+.link-gallery {
+    position: fixed;
+    left: 50%;                     /* 从左边缘50%开始 */
+    transform: translateX(-50%);    /* 向左移动自身宽度的一半，实现水平居中 */
+    top: 50%;                       /* 如果需要垂直居中，保留此行；若只要水平居中，可改为具体数值如 top: 100px; */
+    transform: translate(-50%, -50%); /* 如果同时要垂直居中，用这个（覆盖上一行） */
+    
+    /* 注意：如果同时设置 transform 两次，后者会覆盖前者，请根据需求选择一行 */
+    
+    z-index: 9999;                  /* 提高层级，避免被其他元素遮挡（可调） */
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 10px 5px;
+    
+    /* 隐藏滚动条（可选） */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.link-gallery::-webkit-scrollbar {
+    display: none;
+}
+
+/* 单个链接卡片样式 */
+.link-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    width: 350px;               /* 固定宽度，可根据需要调整 */
+	
+    padding: 12px 18px;
+    background: rgba(0, 0, 0, 0.25);    /* 半透明黑色背景 */
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 30px;        /* 圆角，与整体风格一致 */
+    text-decoration: none;      /* 去掉下划线 */
+    color: white;
+    font-size: 1rem;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+    transition: all 0.25s ease;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+}
+
+.link-card:hover {
+    border-color: white;
+    background: rgba(0, 0, 0, 0.35);
+
+    transform: translateY(-2px); /* 轻微上浮 */
+}
+
+.link-card:active {
+    transform: translateY(0);
+}
+
+/* 卡片内图片样式 */
+.link-card img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;         /* 圆形图片，也可改为圆角 */
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+/* 卡片内文本 */
+.link-card span {
+    flex: 1;                    /* 占据剩余空间 */
+    line-height: 1.4;
+}
