@@ -56,7 +56,7 @@
         .ghost-btn {
             position: absolute;
             left: 150px;     /* 距离左侧30px */
-            margin-top:150px;
+            top:390px;
         }
 
         .ghost-btn:hover {
@@ -169,12 +169,16 @@ a:active {
     margin-top: 50px;           /* 与原 margin-top 一致 */
     z-index: 2;
     display: flex;
-    flex-wrap: wrap;            /* 允许换行 */
+    flex-wrap: nowrap;            /* 允许换行 */
     gap: 20px;                  /* 图片框间距 */
     justify-content: center;    /* 水平居中 */
     align-items: center;        /* 垂直居中（可选） */
     max-width: 90vw;            /* 限制最大宽度，避免溢出 */
     pointer-events: auto;       /* 确保可点击（如需点击穿透请修改） */
+    overflow-x: auto;            /* 添加横向滚动，避免内容被截断 */
+    /* 可选：添加滚动条样式（如果需要） */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.5) transparent;
 }
 
 /* 单个图片框样式 - 自适应图片原始大小 */
