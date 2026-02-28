@@ -169,7 +169,7 @@ a:active {
     margin-top: 50px;           /* 与原 margin-top 一致 */
     z-index: 2;
     display: flex;
-    flex-wrap: nowrap;            /* 允许换行 */
+    flex-wrap: nowrap;            /* 不允许换行 */
     gap: 20px;                  /* 图片框间距 */
     justify-content: center;    /* 水平居中 */
     align-items: center;        /* 垂直居中（可选） */
@@ -294,3 +294,4 @@ a:active {
     flex: 1;                    /* 占据剩余空间 */
     line-height: 1.4;
 }
+
