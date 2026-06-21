@@ -1,0 +1,2802 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的世界</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { overflow: hidden; font-family: 'Microsoft YaHei', sans-serif; background: #000; }
+canvas { display: block; }
+
+#loading {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 1000; color: #fff;
+}
+.loading-bar {
+    width: 300px; height: 6px; background: rgba(255,255,255,0.1);
+    border-radius: 3px; margin-top: 20px; overflow: hidden;
+}
+.loading-fill {
+    height: 100%; background: linear-gradient(90deg, #4CAF50, #81C784);
+    border-radius: 3px; transition: width 0.3s; width: 0%;
+}
+.loading-text { margin-top: 15px; font-size: 14px; color: #aaa; }
+
+#hud {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 100;
+}
+#crosshair {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 24px; height: 24px;
+}
+#crosshair::before, #crosshair::after {
+    content: ''; position: absolute; background: rgba(255,255,255,0.8);
+    box-shadow: 0 0 4px rgba(0,0,0,0.8);
+}
+#crosshair::before { width: 2px; height: 24px; left: 11px; }
+#crosshair::after { width: 24px; height: 2px; top: 11px; }
+
+#hotbar {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 4px; padding: 6px;
+    background: rgba(0,0,0,0.5); border-radius: 8px;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255,255,255,0.15);
+}
+.hotbar-slot {
+    width: 52px; height: 52px; border-radius: 6px;
+    background: rgba(255,255,255,0.08);
+    border: 2px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    position: relative; transition: all 0.2s;
+    cursor: pointer; pointer-events: auto;
+}
+.hotbar-slot.active {
+    border-color: #fff; background: rgba(255,255,255,0.2);
+    transform: scale(1.1); box-shadow: 0 0 15px rgba(255,255,255,0.3);
+}
+.hotbar-slot canvas { width: 40px; height: 40px; border-radius: 4px; }
+.slot-number {
+    position: absolute; top: 2px; left: 4px;
+    font-size: 10px; color: rgba(255,255,255,0.6);
+}
+
+#info-panel {
+    position: absolute; top: 15px; left: 15px;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(10px);
+    padding: 12px 18px; border-radius: 10px;
+    color: #fff; font-size: 13px; line-height: 1.8;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+#info-panel .label { color: #aaa; }
+#info-panel .value { color: #81C784; font-weight: bold; }
+
+#menu {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); backdrop-filter: blur(20px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200; flex-direction: column; gap: 15px;
+}
+#menu.hidden { display: none; }
+.menu-title {
+    font-size: 48px; font-weight: bold; color: #fff;
+    text-shadow: 0 4px 20px rgba(76,175,80,0.5);
+    margin-bottom: 20px; letter-spacing: 3px;
+}
+.menu-btn {
+    padding: 14px 50px; font-size: 18px; color: #fff;
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    border: none; border-radius: 30px; cursor: pointer;
+    transition: all 0.3s; min-width: 250px;
+    box-shadow: 0 4px 15px rgba(76,175,80,0.3);
+}
+.menu-btn:hover {
+    transform: translateY(-2px); box-shadow: 0 6px 25px rgba(76,175,80,0.5);
+}
+.menu-btn.secondary {
+    background: linear-gradient(135deg, #455A64, #263238);
+    box-shadow: 0 4px 15px rgba(69,90,100,0.3);
+}
+
+#inventory {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(15px);
+    display: none; align-items: center; justify-content: center;
+    z-index: 150; flex-direction: column;
+}
+#inventory.show { display: flex; }
+.inventory-title {
+    font-size: 28px; color: #fff; margin-bottom: 25px;
+    text-shadow: 0 2px 10px rgba(76,175,80,0.5);
+}
+.inventory-container {
+    max-width: 1100px; max-height: 70vh; overflow-y: auto;
+    padding: 20px; background: rgba(0,0,0,0.5);
+    border-radius: 15px; border: 2px solid rgba(255,255,255,0.1);
+}
+.inventory-category {
+    margin-bottom: 20px;
+}
+.category-title {
+    color: #81C784; font-size: 16px; margin-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;
+}
+.inventory-grid {
+    display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px;
+}
+.inventory-slot {
+    width: 80px; height: 80px; border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    border: 2px solid rgba(255,255,255,0.1);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s; position: relative;
+}
+.inventory-slot:hover {
+    border-color: #4CAF50; background: rgba(76,175,80,0.2);
+    transform: scale(1.08);
+}
+.inventory-slot.selected {
+    border-color: #fff; background: rgba(255,255,255,0.2);
+    box-shadow: 0 0 15px rgba(255,255,255,0.3);
+}
+.inventory-slot canvas { width: 50px; height: 50px; border-radius: 4px; }
+.inventory-slot .block-name {
+    font-size: 9px; color: #ccc; margin-top: 2px;
+    text-align: center; line-height: 1.1;
+    max-width: 75px; word-break: break-all;
+}
+.inventory-hint {
+    color: #aaa; font-size: 13px; margin-top: 20px;
+    text-align: center;
+}
+.inventory-search {
+    width: 300px; padding: 10px 15px; margin-bottom: 15px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px; color: #fff; font-size: 14px;
+}
+.inventory-search::placeholder { color: rgba(255,255,255,0.5); }
+.inventory-search:focus { outline: none; border-color: #4CAF50; }
+
+#block-info {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, 40px);
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+    padding: 8px 16px; border-radius: 6px;
+    color: #fff; font-size: 14px; opacity: 0;
+    transition: opacity 0.3s; pointer-events: none;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+#toast {
+    position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+    color: #fff; padding: 12px 24px; border-radius: 8px;
+    font-size: 14px; z-index: 300; opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(10px); }
+
+#underwater-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 40;
+    background: rgba(30, 80, 180, 0.4);
+    opacity: 0; transition: opacity 0.3s;
+    backdrop-filter: blur(2px);
+}
+#underwater-overlay.active { opacity: 1; }
+
+.vignette {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 50;
+    box-shadow: inset 0 0 200px rgba(0,0,0,0.5);
+}
+
+.inventory-container::-webkit-scrollbar { width: 8px; }
+.inventory-container::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
+.inventory-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+.inventory-container::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+</style>
+</head>
+<body>
+
+<div id="loading">
+    <div style="font-size: 32px; font-weight: bold; color: #fff; text-shadow: 0 4px 20px rgba(76,175,80,0.5);">我的世界</div>
+    <div style="color: #aaa; margin-top: 5px;">无限世界 · 200+方块 · 50+生物群系</div>
+    <div class="loading-bar"><div class="loading-fill" id="loading-fill"></div></div>
+    <div class="loading-text" id="loading-text">正在初始化...</div>
+</div>
+
+<div id="hud" style="display:none;">
+    <div id="crosshair"></div>
+    <div id="info-panel">
+        <div><span class="label">位置: </span><span class="value" id="pos-info">0, 0, 0</span></div>
+        <div><span class="label">方块: </span><span class="value" id="block-info-text">空气</span></div>
+        <div><span class="label">生物群系: </span><span class="value" id="biome-info">平原</span></div>
+        <div><span class="label">FPS: </span><span class="value" id="fps-info">60</span></div>
+        <div><span class="label">区块: </span><span class="value" id="chunk-info">0</span></div>
+    </div>
+    <div id="hotbar"></div>
+    <div id="block-info"></div>
+</div>
+
+<div id="underwater-overlay"></div>
+
+<div id="inventory">
+    <div class="inventory-title">方块选择 (按E关闭)</div>
+    <input type="text" class="inventory-search" id="inventory-search" placeholder="搜索方块名称...">
+    <div class="inventory-container" id="inventory-container"></div>
+    <div class="inventory-hint">点击方块替换当前快捷栏位置 | 当前选中: 快捷栏第 <span id="current-slot">1</span> 格</div>
+</div>
+
+<div id="menu" class="hidden">
+    <div class="menu-title">我的世界</div>
+    <button class="menu-btn" id="btn-continue">继续游戏</button>
+    <button class="menu-btn secondary" id="btn-new">新世界</button>
+    <button class="menu-btn secondary" id="btn-save">保存世界</button>
+    <div style="color: #aaa; font-size: 13px; margin-top: 20px; text-align: center; line-height: 2;">
+        WASD: 移动 | 空格: 跳跃 | 鼠标: 视角<br>
+        左键: 破坏方块 | 右键: 放置方块 | 滚轮: 切换方块<br>
+        E: 方块选择菜单 | ESC: 系统菜单 | F: 切换飞行模式
+    </div>
+</div>
+
+<div id="toast"></div>
+<div class="vignette"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ========== 噪声生成器 ==========
+class NoiseGenerator {
+    constructor(seed = 12345) {
+        this.seed = seed;
+        this.perm = new Uint8Array(512);
+        this.init();
+    }
+    init() {
+        let p = new Uint8Array(256);
+        for (let i = 0; i < 256; i++) p[i] = i;
+        let s = this.seed;
+        for (let i = 255; i > 0; i--) {
+            s = (s * 16807) % 2147483647;
+            let j = s % (i + 1);
+            [p[i], p[j]] = [p[j], p[i]];
+        }
+        for (let i = 0; i < 512; i++) this.perm[i] = p[i & 255];
+    }
+    fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+    lerp(a, b, t) { return a + t * (b - a); }
+    grad(hash, x, y) {
+        let h = hash & 3;
+        let u = h < 2 ? x : y;
+        let v = h < 2 ? y : x;
+        return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
+    }
+    noise2D(x, y) {
+        let X = Math.floor(x) & 255;
+        let Y = Math.floor(y) & 255;
+        x -= Math.floor(x);
+        y -= Math.floor(y);
+        let u = this.fade(x);
+        let v = this.fade(y);
+        let a = this.perm[X] + Y;
+        let b = this.perm[X + 1] + Y;
+        return this.lerp(
+            this.lerp(this.grad(this.perm[a], x, y), this.grad(this.perm[b], x - 1, y), u),
+            this.lerp(this.grad(this.perm[a + 1], x, y - 1), this.grad(this.perm[b + 1], x - 1, y - 1), u),
+            v
+        );
+    }
+    noise3D(x, y, z) {
+        let X = Math.floor(x) & 255;
+        let Y = Math.floor(y) & 255;
+        let Z = Math.floor(z) & 255;
+        x -= Math.floor(x);
+        y -= Math.floor(y);
+        z -= Math.floor(z);
+        let u = this.fade(x);
+        let v = this.fade(y);
+        let w = this.fade(z);
+        let A = this.perm[X] + Y;
+        let AA = this.perm[A] + Z;
+        let AB = this.perm[A + 1] + Z;
+        let B = this.perm[X + 1] + Y;
+        let BA = this.perm[B] + Z;
+        let BB = this.perm[B + 1] + Z;
+        return this.lerp(
+            this.lerp(
+                this.lerp(this.grad3(this.perm[AA], x, y, z), this.grad3(this.perm[BA], x - 1, y, z), u),
+                this.lerp(this.grad3(this.perm[AB], x, y - 1, z), this.grad3(this.perm[BB], x - 1, y - 1, z), u),
+                v
+            ),
+            this.lerp(
+                this.lerp(this.grad3(this.perm[AA + 1], x, y, z - 1), this.grad3(this.perm[BA + 1], x - 1, y, z - 1), u),
+                this.lerp(this.grad3(this.perm[AB + 1], x, y - 1, z - 1), this.grad3(this.perm[BB + 1], x - 1, y - 1, z - 1), u),
+                v
+            ),
+            w
+        );
+    }
+    grad3(hash, x, y, z) {
+        let h = hash & 15;
+        let u = h < 8 ? x : y;
+        let v = h < 4 ? y : (h === 12 || h === 14 ? x : z);
+        return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
+    }
+    octaveNoise(x, y, octaves = 4, persistence = 0.5, scale = 0.01) {
+        let total = 0, frequency = scale, amplitude = 1, maxValue = 0;
+        for (let i = 0; i < octaves; i++) {
+            total += this.noise2D(x * frequency, y * frequency) * amplitude;
+            maxValue += amplitude;
+            amplitude *= persistence;
+            frequency *= 2;
+        }
+        return total / maxValue;
+    }
+    octaveNoise3D(x, y, z, octaves = 4, persistence = 0.5, scale = 0.01) {
+        let total = 0, frequency = scale, amplitude = 1, maxValue = 0;
+        for (let i = 0; i < octaves; i++) {
+            total += this.noise3D(x * frequency, y * frequency, z * frequency) * amplitude;
+            maxValue += amplitude;
+            amplitude *= persistence;
+            frequency *= 2;
+        }
+        return total / maxValue;
+    }
+}
+
+// ========== 生物群系定义 ==========
+const BIOMES = {
+    FOREST: { id: 'forest', name: '森林', temp: 0.5, humidity: 0.5, treeChance: 0.08, treeType: 'oak', grassColor: '#5a8a3a', waterColor: '#3060c0', flowerChance: 0.02 },
+    FLOWER_FOREST: { id: 'flower_forest', name: '繁花森林', temp: 0.5, humidity: 0.5, treeChance: 0.05, treeType: 'oak', grassColor: '#6a9a4a', waterColor: '#3060c0', flowerChance: 0.15 },
+    BIRCH_FOREST: { id: 'birch_forest', name: '桦木森林', temp: 0.4, humidity: 0.5, treeChance: 0.08, treeType: 'birch', grassColor: '#5a8a3a', waterColor: '#3060c0', flowerChance: 0.01 },
+    OLD_BIRCH_FOREST: { id: 'old_birch_forest', name: '原始桦木森林', temp: 0.4, humidity: 0.5, treeChance: 0.06, treeType: 'birch_tall', grassColor: '#5a8a3a', waterColor: '#3060c0', flowerChance: 0.01 },
+    DARK_FOREST: { id: 'dark_forest', name: '黑森林', temp: 0.5, humidity: 0.5, treeChance: 0.15, treeType: 'dark_oak', grassColor: '#4a7a2a', waterColor: '#3060c0', flowerChance: 0.005 },
+    JUNGLE: { id: 'jungle', name: '丛林', temp: 0.8, humidity: 0.9, treeChance: 0.2, treeType: 'jungle', grassColor: '#3a8a2a', waterColor: '#3060c0', flowerChance: 0.02 },
+    SPARSE_JUNGLE: { id: 'sparse_jungle', name: '稀疏丛林', temp: 0.8, humidity: 0.8, treeChance: 0.1, treeType: 'jungle', grassColor: '#4a9a3a', waterColor: '#3060c0', flowerChance: 0.01 },
+    BAMBOO_JUNGLE: { id: 'bamboo_jungle', name: '竹林', temp: 0.8, humidity: 0.9, treeChance: 0.03, treeType: 'bamboo', grassColor: '#5a9a3a', waterColor: '#3060c0', flowerChance: 0.01 },
+    TAIGA: { id: 'taiga', name: '针叶林', temp: 0.2, humidity: 0.5, treeChance: 0.1, treeType: 'spruce', grassColor: '#4a6a3a', waterColor: '#3060c0', flowerChance: 0.005 },
+    SNOWY_TAIGA: { id: 'snowy_taiga', name: '积雪的针叶林', temp: -0.5, humidity: 0.5, treeChance: 0.1, treeType: 'spruce', grassColor: '#5a7a4a', waterColor: '#2050a0', snowy: true, flowerChance: 0 },
+    OLD_GROWTH_PINE_TAIGA: { id: 'old_pine_taiga', name: '原始松木针叶林', temp: 0.2, humidity: 0.5, treeChance: 0.12, treeType: 'spruce_tall', grassColor: '#4a6a3a', waterColor: '#3060c0', flowerChance: 0.003 },
+    OLD_GROWTH_SPRUCE_TAIGA: { id: 'old_spruce_taiga', name: '原始云杉针叶林', temp: 0.2, humidity: 0.5, treeChance: 0.12, treeType: 'spruce_tall', grassColor: '#4a6a3a', waterColor: '#3060c0', flowerChance: 0.003 },
+    PLAINS: { id: 'plains', name: '平原', temp: 0.5, humidity: 0.4, treeChance: 0.005, treeType: 'oak', grassColor: '#6a9a4a', waterColor: '#3060c0', flowerChance: 0.03 },
+    SUNFLOWER_PLAINS: { id: 'sunflower_plains', name: '向日葵平原', temp: 0.5, humidity: 0.4, treeChance: 0.005, treeType: 'oak', grassColor: '#7aaa5a', waterColor: '#3060c0', flowerChance: 0.08 },
+    SAVANNA: { id: 'savanna', name: '热带草原', temp: 0.8, humidity: 0.2, treeChance: 0.03, treeType: 'acacia', grassColor: '#8a9a4a', waterColor: '#3060c0', flowerChance: 0.01 },
+    SAVANNA_PLATEAU: { id: 'savanna_plateau', name: '热带高原', temp: 0.8, humidity: 0.2, treeChance: 0.03, treeType: 'acacia', grassColor: '#8a9a4a', waterColor: '#3060c0', flowerChance: 0.01 },
+    WINDSWEPT_SAVANNA: { id: 'windswept_savanna', name: '风袭热带草原', temp: 0.8, humidity: 0.2, treeChance: 0.02, treeType: 'acacia', grassColor: '#7a8a3a', waterColor: '#3060c0', flowerChance: 0.005 },
+    WINDSWEPT_HILLS: { id: 'windswept_hills', name: '风袭丘陵', temp: 0.3, humidity: 0.5, treeChance: 0.04, treeType: 'oak', grassColor: '#5a8a3a', waterColor: '#3060c0', flowerChance: 0.01 },
+    WINDSWEPT_FOREST: { id: 'windswept_forest', name: '风袭森林', temp: 0.3, humidity: 0.5, treeChance: 0.08, treeType: 'oak', grassColor: '#5a8a3a', waterColor: '#3060c0', flowerChance: 0.01 },
+    WINDSWEPT_GRAVELLY_HILLS: { id: 'windswept_gravelly_hills', name: '风袭沙砾丘陵', temp: 0.3, humidity: 0.5, treeChance: 0.03, treeType: 'oak', grassColor: '#6a8a3a', waterColor: '#3060c0', flowerChance: 0.005 },
+    MEADOW: { id: 'meadow', name: '草甸', temp: 0.4, humidity: 0.5, treeChance: 0.02, treeType: 'oak', grassColor: '#7aaa5a', waterColor: '#3060c0', flowerChance: 0.06 },
+    GROVE: { id: 'grove', name: '雪林', temp: -0.2, humidity: 0.5, treeChance: 0.08, treeType: 'spruce', grassColor: '#5a7a4a', waterColor: '#2050a0', snowy: true, flowerChance: 0 },
+    SNOWY_SLOPES: { id: 'snowy_slopes', name: '积雪的山坡', temp: -0.3, humidity: 0.5, treeChance: 0.01, treeType: 'spruce', grassColor: '#e0e0e0', waterColor: '#2050a0', snowy: true, flowerChance: 0 },
+    JAGGED_PEAKS: { id: 'jagged_peaks', name: '尖峭山峰', temp: -0.7, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#a0a0a0', waterColor: '#2050a0', snowy: true, flowerChance: 0 },
+    FROZEN_PEAKS: { id: 'frozen_peaks', name: '冰封山峰', temp: -0.7, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#c0e0f0', waterColor: '#2050a0', snowy: true, flowerChance: 0 },
+    STONY_PEAKS: { id: 'stony_peaks', name: '裸岩山峰', temp: 0.3, humidity: 0.3, treeChance: 0, treeType: null, grassColor: '#808080', waterColor: '#3060c0', flowerChance: 0 },
+    SNOWY_PLAINS: { id: 'snowy_plains', name: '积雪的平原', temp: -0.5, humidity: 0.5, treeChance: 0.002, treeType: 'oak', grassColor: '#e0e0e0', waterColor: '#2050a0', snowy: true, flowerChance: 0 },
+    ICE_SPIKES: { id: 'ice_spikes', name: '冰刺平原', temp: -0.5, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#e0e0e0', waterColor: '#2050a0', snowy: true, flowerChance: 0 },
+    FROZEN_RIVER: { id: 'frozen_river', name: '冻河', temp: -0.5, humidity: 0.5, treeChance: 0.01, treeType: 'oak', grassColor: '#e0e0e0', waterColor: '#2050a0', waterLevel: 28, snowy: true, flowerChance: 0 },
+    SNOWY_BEACH: { id: 'snowy_beach', name: '积雪的沙滩', temp: -0.3, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#e0e0e0', waterColor: '#2050a0', snowy: true, flowerChance: 0 },
+    DESERT: { id: 'desert', name: '沙漠', temp: 1.0, humidity: 0.0, treeChance: 0, treeType: null, grassColor: '#e0d090', waterColor: '#3060c0', flowerChance: 0 },
+    BADLANDS: { id: 'badlands', name: '恶地', temp: 1.0, humidity: 0.0, treeChance: 0, treeType: null, grassColor: '#c08050', waterColor: '#3060c0', flowerChance: 0 },
+    WOODED_BADLANDS: { id: 'wooded_badlands', name: '繁茂的恶地', temp: 1.0, humidity: 0.0, treeChance: 0.05, treeType: 'oak', grassColor: '#a07040', waterColor: '#3060c0', flowerChance: 0.005 },
+    ERODED_BADLANDS: { id: 'eroded_badlands', name: '被风蚀的恶地', temp: 1.0, humidity: 0.0, treeChance: 0, treeType: null, grassColor: '#c08050', waterColor: '#3060c0', flowerChance: 0 },
+    SWAMP: { id: 'swamp', name: '沼泽', temp: 0.5, humidity: 0.9, treeChance: 0.05, treeType: 'swamp_oak', grassColor: '#4a6a2a', waterColor: '#406050', flowerChance: 0.02 },
+    RIVER: { id: 'river', name: '河流', temp: 0.5, humidity: 0.5, treeChance: 0.01, treeType: 'oak', grassColor: '#5a8a3a', waterColor: '#3060c0', waterLevel: 28, flowerChance: 0.005 },
+    BEACH: { id: 'beach', name: '沙滩', temp: 0.5, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#e0d090', waterColor: '#3060c0', flowerChance: 0 },
+    STONY_SHORE: { id: 'stony_shore', name: '石岸', temp: 0.4, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#808080', waterColor: '#3060c0', flowerChance: 0 },
+    OCEAN: { id: 'ocean', name: '海洋', temp: 0.5, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#3a7a5a', waterColor: '#3060c0', waterLevel: 35, flowerChance: 0 },
+    DEEP_OCEAN: { id: 'deep_ocean', name: '深海', temp: 0.5, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#3a7a5a', waterColor: '#2050b0', waterLevel: 35, flowerChance: 0 },
+    WARM_OCEAN: { id: 'warm_ocean', name: '暖水海洋', temp: 0.8, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#4a8a6a', waterColor: '#30a0c0', waterLevel: 35, flowerChance: 0 },
+    LUKEWARM_OCEAN: { id: 'lukewarm_ocean', name: '温水海洋', temp: 0.6, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#3a8a5a', waterColor: '#3080c0', waterLevel: 35, flowerChance: 0 },
+    LUKEWARM_DEEP_OCEAN: { id: 'lukewarm_deep_ocean', name: '温水深海', temp: 0.6, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#3a8a5a', waterColor: '#2070b0', waterLevel: 35, flowerChance: 0 },
+    COLD_OCEAN: { id: 'cold_ocean', name: '冷水海洋', temp: 0.3, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#3a7a5a', waterColor: '#3060a0', waterLevel: 35, flowerChance: 0 },
+    COLD_DEEP_OCEAN: { id: 'cold_deep_ocean', name: '冷水深海', temp: 0.3, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#3a7a5a', waterColor: '#205090', waterLevel: 35, flowerChance: 0 },
+    FROZEN_OCEAN: { id: 'frozen_ocean', name: '冻洋', temp: -0.5, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#5a7a6a', waterColor: '#204080', waterLevel: 35, snowy: true, flowerChance: 0 },
+    FROZEN_DEEP_OCEAN: { id: 'frozen_deep_ocean', name: '冰冻深海', temp: -0.5, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#5a7a6a', waterColor: '#103070', waterLevel: 35, snowy: true, flowerChance: 0 },
+    LUSH_CAVES: { id: 'lush_caves', name: '繁茂洞穴', temp: 0.5, humidity: 0.9, treeChance: 0, treeType: null, grassColor: '#3a7a2a', waterColor: '#3060c0', underground: true, flowerChance: 0 },
+    DRIPSTONE_CAVES: { id: 'dripstone_caves', name: '溶洞', temp: 0.5, humidity: 0.4, treeChance: 0, treeType: null, grassColor: '#807060', waterColor: '#3060c0', underground: true, flowerChance: 0 },
+    NETHER_WASTES: { id: 'nether_wastes', name: '下界荒地', temp: 2.0, humidity: 0.0, treeChance: 0, treeType: null, grassColor: '#5a2a2a', waterColor: '#e06020', nether: true, flowerChance: 0 },
+    CRIMSON_FOREST: { id: 'crimson_forest', name: '绯红森林', temp: 2.0, humidity: 0.0, treeChance: 0.1, treeType: 'crimson', grassColor: '#6a2030', waterColor: '#e06020', nether: true, flowerChance: 0 },
+    WARPED_FOREST: { id: 'warped_forest', name: '诡异森林', temp: 2.0, humidity: 0.0, treeChance: 0.1, treeType: 'warped', grassColor: '#206070', waterColor: '#e06020', nether: true, flowerChance: 0 },
+    SOUL_SAND_VALLEY: { id: 'soul_sand_valley', name: '灵魂沙峡谷', temp: 2.0, humidity: 0.0, treeChance: 0, treeType: null, grassColor: '#3a3a2a', waterColor: '#e06020', nether: true, flowerChance: 0 },
+    BASALT_DELTAS: { id: 'basalt_deltas', name: '玄武岩三角洲', temp: 2.0, humidity: 0.0, treeChance: 0, treeType: null, grassColor: '#2a2a2a', waterColor: '#e06020', nether: true, flowerChance: 0 },
+    END_MAIN_ISLAND: { id: 'end_main_island', name: '末地', temp: 0.5, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#d0c080', waterColor: '#000000', end: true, flowerChance: 0 },
+    END_SMALL_ISLANDS: { id: 'end_small_islands', name: '末地小型岛屿', temp: 0.5, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#d0c080', waterColor: '#000000', end: true, flowerChance: 0 },
+    END_BARRENS: { id: 'end_barrens', name: '末地荒地', temp: 0.5, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#d0c080', waterColor: '#000000', end: true, flowerChance: 0 },
+    END_MIDLANDS: { id: 'end_midlands', name: '末地中型岛屿', temp: 0.5, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#d0c080', waterColor: '#000000', end: true, flowerChance: 0 },
+    END_HIGHLANDS: { id: 'end_highlands', name: '末地高岛', temp: 0.5, humidity: 0.5, treeChance: 0, treeType: null, grassColor: '#d0c080', waterColor: '#000000', end: true, flowerChance: 0 }
+};
+
+// ========== 方块类型定义 ==========
+const BLOCK_TYPES = {
+    AIR: 0, GRASS: 1, DIRT: 2, STONE: 3, WOOD: 4, LEAVES: 5,
+    SAND: 6, WATER: 7, BEDROCK: 8, COAL_ORE: 9, IRON_ORE: 10, GOLD_ORE: 11,
+    DIAMOND_ORE: 12, PLANKS: 13, GLASS: 14, BRICK: 15, SNOW: 16,
+    GRANITE: 100, DIORITE: 101, ANDESITE: 102, DEEPSLATE: 103, COBBLESTONE: 104,
+    DEEPSLATE_COBBLE: 105, TUFF: 106, CALCITE: 107, SMOOTH_BASALT: 108, DRIPSTONE: 109,
+    MOSS_BLOCK: 110, MOSS_CARPET: 111, ROOTED_DIRT: 112, GRAVEL: 113, SANDSTONE: 114,
+    DEEPSLATE_COAL_ORE: 120, DEEPSLATE_IRON_ORE: 121, DEEPSLATE_COPPER_ORE: 122,
+    COPPER_ORE: 123, DEEPSLATE_GOLD_ORE: 124, DEEPSLATE_REDSTONE_ORE: 125,
+    REDSTONE_ORE: 126, DEEPSLATE_DIAMOND_ORE: 127, DEEPSLATE_EMERALD_ORE: 128,
+    EMERALD_ORE: 129, DEEPSLATE_LAPIS_ORE: 130, LAPIS_ORE: 131,
+    NETHER_QUARTZ_ORE: 132, NETHER_GOLD_ORE: 133, ANCIENT_DEBRIS: 134,
+    COPPER_BLOCK: 140, IRON_BLOCK: 148, GOLD_BLOCK: 149, DIAMOND_BLOCK: 150, EMERALD_BLOCK: 151,
+    LAPIS_BLOCK: 152, REDSTONE_BLOCK: 153, COAL_BLOCK: 154, AMETHYST_BLOCK: 155,
+    MYCELIUM: 160, PODZOL: 161, COARSE_DIRT: 162, RED_SAND: 163, RED_SANDSTONE: 164,
+    CLAY: 165, ICE: 166, PACKED_ICE: 167, BLUE_ICE: 168,
+    SPRUCE_LOG: 180, BIRCH_LOG: 181, JUNGLE_LOG: 182, ACACIA_LOG: 183, DARK_OAK_LOG: 184,
+    CRIMSON_STEM: 185, WARPED_STEM: 186,
+    SPRUCE_PLANKS: 195, BIRCH_PLANKS: 196, JUNGLE_PLANKS: 197, ACACIA_PLANKS: 198,
+    DARK_OAK_PLANKS: 199, CRIMSON_PLANKS: 200, WARPED_PLANKS: 201,
+    SPRUCE_LEAVES: 210, BIRCH_LEAVES: 211, JUNGLE_LEAVES: 212, ACACIA_LEAVES: 213,
+    DARK_OAK_LEAVES: 214, CRIMSON_NYLIUM: 217, WARPED_NYLIUM: 218,
+    STONE_BRICKS: 230, DEEPSLATE_BRICKS: 231, POLISHED_GRANITE: 232, POLISHED_DIORITE: 233,
+    POLISHED_ANDESITE: 234, POLISHED_DEEPSLATE: 235, DEEPSLATE_TILES: 236,
+    CRACKED_STONE_BRICKS: 237, MOSSY_STONE_BRICKS: 238, QUARTZ_BLOCK: 239,
+    SMOOTH_QUARTZ: 240, PRISMARINE: 241, PRISMARINE_BRICKS: 242, DARK_PRISMARINE: 243,
+    NETHER_BRICKS: 244, RED_NETHER_BRICKS: 245, END_STONE_BRICKS: 246, PURPUR_BLOCK: 247,
+    TERRACOTTA: 248, OBSIDIAN: 249, CRYING_OBSIDIAN: 250, NETHERRACK: 251,
+    END_STONE: 252, GLOWSTONE: 253, SEA_LANTERN: 254, JACK_O_LANTERN: 255,
+    WHITE_CONCRETE: 260, ORANGE_CONCRETE: 261, MAGENTA_CONCRETE: 262, LIGHT_BLUE_CONCRETE: 263,
+    YELLOW_CONCRETE: 264, LIME_CONCRETE: 265, PINK_CONCRETE: 266, GRAY_CONCRETE: 267,
+    LIGHT_GRAY_CONCRETE: 268, CYAN_CONCRETE: 269, PURPLE_CONCRETE: 270, BLUE_CONCRETE: 271,
+    BROWN_CONCRETE: 272, GREEN_CONCRETE: 273, RED_CONCRETE: 274, BLACK_CONCRETE: 275,
+    WHITE_WOOL: 280, ORANGE_WOOL: 281, MAGENTA_WOOL: 282, LIGHT_BLUE_WOOL: 283,
+    YELLOW_WOOL: 284, LIME_WOOL: 285, PINK_WOOL: 286, GRAY_WOOL: 287,
+    LIGHT_GRAY_WOOL: 288, CYAN_WOOL: 289, PURPLE_WOOL: 290, BLUE_WOOL: 291,
+    BROWN_WOOL: 292, GREEN_WOOL: 293, RED_WOOL: 294, BLACK_WOOL: 295,
+    WHITE_STAINED_GLASS: 300, ORANGE_STAINED_GLASS: 301, MAGENTA_STAINED_GLASS: 302,
+    LIGHT_BLUE_STAINED_GLASS: 303, YELLOW_STAINED_GLASS: 304, LIME_STAINED_GLASS: 305,
+    PINK_STAINED_GLASS: 306, GRAY_STAINED_GLASS: 307, LIGHT_GRAY_STAINED_GLASS: 308,
+    CYAN_STAINED_GLASS: 309, PURPLE_STAINED_GLASS: 310, BLUE_STAINED_GLASS: 311,
+    BROWN_STAINED_GLASS: 312, GREEN_STAINED_GLASS: 313, RED_STAINED_GLASS: 314, BLACK_STAINED_GLASS: 315,
+    CRAFTING_TABLE: 320, FURNACE: 321, BLAST_FURNACE: 322, SMOKER: 323,
+    CHEST: 324, ENCHANTING_TABLE: 325, ANVIL: 326, GRINDSTONE: 327,
+    LOOM: 328, CARTOGRAPHY_TABLE: 329, FLETCHING_TABLE: 330, SMITHING_TABLE: 331,
+    STONECUTTER: 332, CAULDRON: 333, COMPOSTER: 334, SCAFFOLDING: 335,
+    TNT: 336, NOTE_BLOCK: 337, JUKEBOX: 338, BEACON: 339,
+    TORCH: 350, LANTERN: 351, SOUL_LANTERN: 352, CAMPFIRE: 353, SOUL_CAMPFIRE: 354,
+    CANDLE: 355, END_ROD: 356, REDSTONE_LAMP: 357, SOUL_TORCH: 358,
+    REDSTONE_WIRE: 370, REDSTONE_REPEATER: 371, REDSTONE_COMPARATOR: 372,
+    REDSTONE_TORCH: 373, BUTTON: 374, PRESSURE_PLATE: 375, LEVER: 376,
+    PISTON: 377, STICKY_PISTON: 378, DISPENSER: 379, DROPPER: 380,
+    HOPPER: 381, OBSERVER: 382, DAYLIGHT_DETECTOR: 383,
+    LAVA: 390, BUBBLE_COLUMN: 391,
+    BAMBOO: 400, CACTUS: 401, SUGAR_CANE: 402, VINE: 403, LILY_PAD: 404,
+    SOUL_SAND: 405, SOUL_SOIL: 406, MAGMA_BLOCK: 407, NETHER_GOLD_ORE_BLOCK: 408,
+    BASALT: 409, BLACKSTONE: 410,
+    DANDELION: 500, POPPY: 501, BLUE_ORCHID: 502, ALLIUM: 503,
+    AZURE_BLUET: 504, RED_TULIP: 505, ORANGE_TULIP: 506, WHITE_TULIP: 507,
+    PINK_TULIP: 508, OXEYE_DAISY: 509, CORNFLOWER: 510, LILY_OF_THE_VALLEY: 511,
+    SUNFLOWER: 512, LILAC: 513, ROSE_BUSH: 514, PEONY: 515,
+    TALL_GRASS: 516, LARGE_FERN: 517, DEAD_BUSH: 518, FERN: 519,
+    // 结构方块
+    BOOKSHELF: 600, COBWEB: 601, LADDER: 602, IRON_BARS: 603, GLASS_PANE: 604,
+    OAK_DOOR: 605, IRON_DOOR: 606, OAK_FENCE: 607, OAK_SIGN: 608,
+    SPAWNER: 609, BONE_BLOCK: 610, SEA_PICKLE: 611, KELP: 612,
+    CORAL: 613, CORAL_BLOCK: 614, SPONGE: 615, DRAGON_EGG: 616,
+    END_PORTAL_FRAME: 617, END_PORTAL: 618, END_GATEWAY: 619,
+    PURPUR_PILLAR: 620, PURPUR_STAIRS: 621, END_ROD_BLOCK: 622
+};
+
+const BLOCK_NAMES = {
+    0: '空气', 1: '草方块', 2: '泥土', 3: '石头', 4: '橡木原木', 5: '橡木树叶',
+    6: '沙子', 7: '水', 8: '基岩', 9: '煤矿石', 10: '铁矿石', 11: '金矿石',
+    12: '钻石矿石', 13: '橡木木板', 14: '玻璃', 15: '砖块', 16: '雪块',
+    100: '花岗岩', 101: '闪长岩', 102: '安山岩', 103: '深板岩', 104: '圆石',
+    105: '深板岩圆石', 106: '凝灰岩', 107: '方解石', 108: '平滑玄武岩', 109: '滴水石块',
+    110: '苔藓块', 111: '苔藓地毯', 112: '缠根泥土', 113: '沙砾', 114: '砂岩',
+    120: '深层煤矿石', 121: '深层铁矿石', 122: '深层铜矿石', 123: '铜矿石',
+    124: '深层金矿石', 125: '深层红石矿石', 126: '红石矿石', 127: '深层钻石矿石',
+    128: '深层绿宝石矿石', 129: '绿宝石矿石', 130: '深层青金石矿石', 131: '青金石矿石',
+    132: '下界石英矿石', 133: '下界金矿石', 134: '远古残骸',
+    140: '铜块', 148: '铁块', 149: '金块', 150: '钻石块', 151: '绿宝石块',
+    152: '青金石块', 153: '红石块', 154: '煤炭块', 155: '紫水晶块',
+    160: '菌丝体', 161: '灰化土', 162: '砂土', 163: '红沙', 164: '红砂岩',
+    165: '黏土块', 166: '冰', 167: '浮冰', 168: '蓝冰',
+    180: '云杉木原木', 181: '白桦木原木', 182: '丛林木原木', 183: '金合欢木原木', 184: '深色橡木原木',
+    185: '绯红菌柄', 186: '诡异菌柄',
+    195: '云杉木板', 196: '白桦木板', 197: '丛林木板', 198: '金合欢木板',
+    199: '深色橡木板', 200: '绯红木板', 201: '诡异木板',
+    210: '云杉树叶', 211: '白桦树叶', 212: '丛林树叶', 213: '金合欢树叶',
+    214: '深色橡木树叶', 217: '绯红菌岩', 218: '诡异菌岩',
+    230: '石砖', 231: '深板岩砖', 232: '磨制花岗岩', 233: '磨制闪长岩',
+    234: '磨制安山岩', 235: '磨制深板岩', 236: '深板岩瓦', 237: '裂纹石砖',
+    238: '苔石砖', 239: '石英块', 240: '平滑石英块', 241: '海晶石',
+    242: '海晶石砖', 243: '暗海晶石', 244: '下界砖块', 245: '红色下界砖块',
+    246: '末地石砖', 247: '紫珀块', 248: '陶瓦', 249: '黑曜石',
+    250: '哭泣的黑曜石', 251: '下界岩', 252: '末地石', 253: '荧石',
+    254: '海晶灯', 255: '南瓜灯',
+    260: '白色混凝土', 261: '橙色混凝土', 262: '品红色混凝土', 263: '淡蓝色混凝土',
+    264: '黄色混凝土', 265: '黄绿色混凝土', 266: '粉红色混凝土', 267: '灰色混凝土',
+    268: '淡灰色混凝土', 269: '青色混凝土', 270: '紫色混凝土', 271: '蓝色混凝土',
+    272: '棕色混凝土', 273: '绿色混凝土', 274: '红色混凝土', 275: '黑色混凝土',
+    280: '白色羊毛', 281: '橙色羊毛', 282: '品红色羊毛', 283: '淡蓝色羊毛',
+    284: '黄色羊毛', 285: '黄绿色羊毛', 286: '粉红色羊毛', 287: '灰色羊毛',
+    288: '淡灰色羊毛', 289: '青色羊毛', 290: '紫色羊毛', 291: '蓝色羊毛',
+    292: '棕色羊毛', 293: '绿色羊毛', 294: '红色羊毛', 295: '黑色羊毛',
+    300: '白色染色玻璃', 301: '橙色染色玻璃', 302: '品红色染色玻璃', 303: '淡蓝色染色玻璃',
+    304: '黄色染色玻璃', 305: '黄绿色染色玻璃', 306: '粉红色染色玻璃', 307: '灰色染色玻璃',
+    308: '淡灰色染色玻璃', 309: '青色染色玻璃', 310: '紫色染色玻璃', 311: '蓝色染色玻璃',
+    312: '棕色染色玻璃', 313: '绿色染色玻璃', 314: '红色染色玻璃', 315: '黑色染色玻璃',
+    320: '工作台', 321: '熔炉', 322: '高炉', 323: '烟熏炉', 324: '箱子',
+    325: '附魔台', 326: '铁砧', 327: '砂轮', 328: '织布机', 329: '制图台',
+    330: '制箭台', 331: '锻造台', 332: '切石机', 333: '炼药锅', 334: '堆肥桶',
+    335: '脚手架', 336: 'TNT', 337: '音符盒', 338: '唱片机', 339: '信标',
+    350: '火把', 351: '灯笼', 352: '灵魂灯笼', 353: '营火', 354: '灵魂营火',
+    355: '蜡烛', 356: '末地烛', 357: '红石灯', 358: '灵魂火把',
+    370: '红石粉', 371: '红石中继器', 372: '红石比较器', 373: '红石火把',
+    374: '按钮', 375: '压力板', 376: '拉杆', 377: '活塞', 378: '粘性活塞',
+    379: '发射器', 380: '投掷器', 381: '漏斗', 382: '观察者', 383: '阳光传感器',
+    390: '熔岩', 391: '气泡柱',
+    400: '竹子', 401: '仙人掌', 402: '甘蔗', 403: '藤蔓', 404: '睡莲',
+    405: '灵魂沙', 406: '灵魂土', 407: '岩浆块', 408: '下界金矿石',
+    409: '玄武岩', 410: '黑石',
+    500: '蒲公英', 501: '虞美人', 502: '兰花', 503: '绒球葱',
+    504: '滨菊', 505: '红色郁金香', 506: '橙色郁金香', 507: '白色郁金香',
+    508: '粉色郁金香', 509: '矢车菊', 510: '铃兰', 511: '向日葵',
+    512: '丁香', 513: '玫瑰丛', 514: '牡丹', 515: '高草丛',
+    516: '大型蕨', 517: '枯灌木', 518: '蕨',
+    600: '书架', 601: '蜘蛛网', 602: '梯子', 603: '铁栏杆', 604: '玻璃板',
+    605: '橡木门', 606: '铁门', 607: '橡木栅栏', 608: '橡木告示牌',
+    609: '刷怪笼', 610: '骨块', 611: '海泡菜', 612: '海带',
+    613: '珊瑚', 614: '珊瑚块', 615: '海绵', 616: '龙蛋',
+    617: '末地传送门框架', 618: '末地传送门', 619: '末地折跃门',
+    620: '紫珀柱', 621: '紫珀楼梯', 622: '末地烛方块'
+};
+
+const BLOCK_CATEGORIES = {
+    '基础方块': [1, 2, 3, 4, 5, 6, 7, 8, 13, 14, 15, 16],
+    '石类方块': [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114],
+    '矿石方块': [9, 10, 11, 12, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134],
+    '矿物块': [140, 148, 149, 150, 151, 152, 153, 154, 155],
+    '泥土沙子': [160, 161, 162, 163, 164, 165, 166, 167, 168],
+    '木材原木': [4, 180, 181, 182, 183, 184, 185, 186],
+    '木板方块': [13, 195, 196, 197, 198, 199, 200, 201],
+    '树叶方块': [5, 210, 211, 212, 213, 214, 217, 218],
+    '建筑方块': [230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255],
+    '混凝土': [260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275],
+    '羊毛': [280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295],
+    '染色玻璃': [14, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315],
+    '功能方块': [320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339],
+    '照明方块': [350, 351, 352, 353, 354, 355, 356, 357, 358],
+    '红石方块': [370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383],
+    '液体方块': [7, 390, 391],
+    '特殊方块': [400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410],
+    '花草植物': [500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511, 512, 513, 514, 515, 516, 517, 518],
+    '结构方块': [600, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617, 618, 619, 620, 621, 622]
+};
+
+const TRANSPARENT_BLOCKS = new Set([
+    BLOCK_TYPES.AIR, BLOCK_TYPES.WATER, BLOCK_TYPES.GLASS, BLOCK_TYPES.LEAVES,
+    BLOCK_TYPES.ICE, BLOCK_TYPES.LAVA, BLOCK_TYPES.VINE, BLOCK_TYPES.LILY_PAD,
+    500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511, 512, 513, 514, 515, 516, 517, 518,
+    601, 602, 603, 604, 605, 606, 607, 608, 611, 612, 613, 619, 622
+]);
+
+const STAINED_GLASS_BLOCKS = new Set([
+    300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315
+]);
+
+const STAINED_GLASS_COLORS = {
+    300: [255, 255, 255], 301: [255, 165, 0], 302: [255, 0, 255], 303: [173, 216, 230],
+    304: [255, 255, 0], 305: [50, 205, 50], 306: [255, 192, 203], 307: [128, 128, 128],
+    308: [192, 192, 192], 309: [0, 255, 255], 310: [128, 0, 128], 311: [0, 0, 255],
+    312: [139, 69, 19], 313: [0, 128, 0], 314: [255, 0, 0], 315: [0, 0, 0]
+};
+
+const CONCRETE_COLORS = {
+    260: [255, 255, 255], 261: [255, 165, 0], 262: [255, 0, 255], 263: [173, 216, 230],
+    264: [255, 255, 0], 265: [50, 205, 50], 266: [255, 192, 203], 267: [128, 128, 128],
+    268: [192, 192, 192], 269: [0, 255, 255], 270: [128, 0, 128], 271: [0, 0, 255],
+    272: [139, 69, 19], 273: [0, 128, 0], 274: [255, 0, 0], 275: [0, 0, 0]
+};
+
+const WOOL_COLORS = {
+    280: [235, 235, 235], 281: [237, 141, 36], 282: [195, 84, 205], 283: [102, 137, 211],
+    284: [222, 197, 75], 285: [93, 193, 69], 286: [217, 129, 153], 287: [64, 64, 64],
+    288: [154, 161, 161], 289: [47, 110, 109], 290: [126, 52, 140], 291: [44, 58, 141],
+    292: [85, 67, 44], 293: [74, 99, 47], 294: [142, 33, 33], 295: [27, 23, 23]
+};
+
+const FLOWER_COLORS = {
+    500: ['#ffd700', '#ffc700', '#ffe700'], 501: ['#ff0000', '#e00000', '#ff3030'],
+    502: ['#4060ff', '#3050ee', '#5070ff'], 503: ['#c000ff', '#a000e0', '#d020ff'],
+    504: ['#ffffff', '#e0e0e0', '#ffffff'], 505: ['#ff0000', '#e00000', '#ff3030'],
+    506: ['#ff8000', '#e07000', '#ff9000'], 507: ['#ffffff', '#e0e0e0', '#ffffff'],
+    508: ['#ff80c0', '#e070b0', '#ff90d0'], 509: ['#ffffff', '#e0e0e0', '#ffffff'],
+    510: ['#4080ff', '#3070ee', '#5090ff'], 511: ['#ffffff', '#e0e0e0', '#ffffff'],
+    512: ['#ffd700', '#ffc700', '#ffe700'], 513: ['#c000ff', '#a000e0', '#d020ff'],
+    514: ['#ff0000', '#e00000', '#ff3030'], 515: ['#ff80c0', '#e070b0', '#ff90d0'],
+    516: ['#5a8a3a', '#4a7a2a', '#6a9a4a'], 517: ['#3a6a2a', '#2a5a1a', '#4a7a3a'],
+    518: ['#8a6a3a', '#7a5a2a', '#9a7a4a'], 519: ['#3a7a2a', '#2a6a1a', '#4a8a3a']
+};
+
+// ========== 程序化纹理生成 ==========
+function generateTexture(type, size = 16) {
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    
+    const baseColors = {
+        1: ['#5a8a3a', '#4a7a2a', '#6a9a4a'], 2: ['#8b6f47', '#7b5f37', '#9b7f57'],
+        3: ['#808080', '#707070', '#909090'], 4: ['#6b4f2a', '#5b3f1a', '#7b5f3a'],
+        5: ['#3a7a2a', '#2a6a1a', '#4a8a3a'], 6: ['#e0d090', '#d0c080', '#f0e0a0'],
+        7: ['#3060c0', '#2050b0', '#4070d0'], 8: ['#333333', '#222222', '#444444'],
+        13: ['#b08040', '#a07030', '#c09050'], 14: ['#a0c0d0', '#90b0c0', '#b0d0e0'],
+        15: ['#a04030', '#903020', '#b05040'], 16: ['#f0f0f0', '#e0e0e0', '#ffffff'],
+        100: ['#b07060', '#a06050', '#c08070'], 101: ['#a0a098', '#909088', '#b0b0a8'],
+        102: ['#888888', '#787878', '#989898'], 103: ['#3a3a3a', '#2a2a2a', '#4a4a4a'],
+        104: ['#707070', '#606060', '#808080'], 105: ['#2a2a2a', '#1a1a1a', '#3a3a3a'],
+        106: ['#707860', '#606850', '#808870'], 107: ['#e0e0d0', '#d0d0c0', '#f0f0e0'],
+        108: ['#3a3a40', '#2a2a30', '#4a4a50'], 109: ['#c0a070', '#b09060', '#d0b080'],
+        110: ['#3a5a2a', '#2a4a1a', '#4a6a3a'], 111: ['#3a5a2a', '#2a4a1a', '#4a6a3a'],
+        112: ['#5a3f20', '#4a2f10', '#6a4f30'], 113: ['#a0a098', '#909088', '#b0b0a8'],
+        114: ['#e0d090', '#d0c080', '#f0e0a0'],
+        120: ['#3a3a3a', '#2a2a2a', '#4a4a4a'], 121: ['#3a3a3a', '#2a2a2a', '#4a4a4a'],
+        122: ['#3a3a3a', '#2a2a2a', '#4a4a4a'], 123: ['#808080', '#707070', '#909090'],
+        124: ['#3a3a3a', '#2a2a2a', '#4a4a4a'], 125: ['#3a3a3a', '#2a2a2a', '#4a4a4a'],
+        126: ['#808080', '#707070', '#909090'], 127: ['#3a3a3a', '#2a2a2a', '#4a4a4a'],
+        128: ['#3a3a3a', '#2a2a2a', '#4a4a4a'], 129: ['#808080', '#707070', '#909090'],
+        130: ['#3a3a3a', '#2a2a2a', '#4a4a4a'], 131: ['#808080', '#707070', '#909090'],
+        132: ['#704040', '#603030', '#805050'], 133: ['#704040', '#603030', '#805050'],
+        134: ['#5a3020', '#4a2010', '#6a4030'],
+        140: ['#c87543', '#b86533', '#d88553'], 148: ['#d0d0d0', '#c0c0c0', '#e0e0e0'],
+        149: ['#ffd700', '#ffc700', '#ffe700'], 150: ['#50f0ff', '#40e0f0', '#60ffff'],
+        151: ['#50ff50', '#40f040', '#60ff60'], 152: ['#2050c0', '#1040b0', '#3060d0'],
+        153: ['#c02020', '#b01010', '#d03030'], 154: ['#1a1a1a', '#0a0a0a', '#2a2a2a'],
+        155: ['#a040c0', '#9030b0', '#b050d0'],
+        160: ['#5a4a5a', '#4a3a4a', '#6a5a6a'], 161: ['#5a4030', '#4a3020', '#6a5040'],
+        162: ['#7a6a4a', '#6a5a3a', '#8a7a5a'], 163: ['#c06030', '#b05020', '#d07040'],
+        164: ['#c06030', '#b05020', '#d07040'], 165: ['#a0a0a0', '#909090', '#b0b0b0'],
+        166: ['#a0c0e0', '#90b0d0', '#b0d0f0'], 167: ['#c0e0f0', '#b0d0e0', '#d0f0ff'],
+        168: ['#3060a0', '#205090', '#4070b0'],
+        180: ['#3a2818', '#2a1808', '#4a3828'], 181: ['#d0d0c0', '#c0c0b0', '#e0e0d0'],
+        182: ['#6a5030', '#5a4020', '#7a6040'], 183: ['#a06030', '#905020', '#b07040'],
+        184: ['#2a1a0a', '#1a0a00', '#3a2a1a'], 185: ['#6a2030', '#5a1020', '#7a3040'],
+        186: ['#206070', '#105060', '#307080'],
+        195: ['#3a2818', '#2a1808', '#4a3828'], 196: ['#d0d0c0', '#c0c0b0', '#e0e0d0'],
+        197: ['#6a5030', '#5a4020', '#7a6040'], 198: ['#a06030', '#905020', '#b07040'],
+        199: ['#2a1a0a', '#1a0a00', '#3a2a1a'], 200: ['#6a2030', '#5a1020', '#7a3040'],
+        201: ['#206070', '#105060', '#307080'],
+        210: ['#1a3a1a', '#0a2a0a', '#2a4a2a'], 211: ['#6a9a4a', '#5a8a3a', '#7aaa5a'],
+        212: ['#3a8a2a', '#2a7a1a', '#4a9a3a'], 213: ['#8a8a2a', '#7a7a1a', '#9a9a3a'],
+        214: ['#1a3a1a', '#0a2a0a', '#2a4a2a'], 217: ['#6a2030', '#5a1020', '#7a3040'],
+        218: ['#206070', '#105060', '#307080'],
+        230: ['#707070', '#606060', '#808080'], 231: ['#2a2a2a', '#1a1a1a', '#3a3a3a'],
+        232: ['#b07060', '#a06050', '#c08070'], 233: ['#a0a098', '#909088', '#b0b0a8'],
+        234: ['#888888', '#787878', '#989898'], 235: ['#3a3a3a', '#2a2a2a', '#4a4a4a'],
+        236: ['#2a2a2a', '#1a1a1a', '#3a3a3a'], 237: ['#606060', '#505050', '#707070'],
+        238: ['#5a7050', '#4a6040', '#6a8060'], 239: ['#e0e0d0', '#d0d0c0', '#f0f0e0'],
+        240: ['#f0f0f0', '#e0e0e0', '#ffffff'], 241: ['#40a090', '#309080', '#50b0a0'],
+        242: ['#30a090', '#209080', '#40b0a0'], 243: ['#0a6050', '#005040', '#1a7060'],
+        244: ['#2a1a2a', '#1a0a1a', '#3a2a3a'], 245: ['#5a1a1a', '#4a0a0a', '#6a2a2a'],
+        246: ['#d0c080', '#c0b070', '#e0d090'], 247: ['#9a3a9a', '#8a2a8a', '#aa4aaa'],
+        248: ['#9a6a4a', '#8a5a3a', '#aa7a5a'], 249: ['#1a0a1a', '#0a000a', '#2a1a2a'],
+        250: ['#1a0a2a', '#0a001a', '#2a1a3a'], 251: ['#5a2a2a', '#4a1a1a', '#6a3a3a'],
+        252: ['#d0c080', '#c0b070', '#e0d090'], 253: ['#a0a040', '#909030', '#b0b050'],
+        254: ['#30a090', '#209080', '#40b0a0'], 255: ['#c08020', '#b07010', '#d09030'],
+        320: ['#8a6a3a', '#7a5a2a', '#9a7a4a'], 321: ['#707070', '#606060', '#808080'],
+        322: ['#3a3a3a', '#2a2a2a', '#4a4a4a'], 323: ['#2a2a2a', '#1a1a1a', '#3a3a3a'],
+        324: ['#8a6a3a', '#7a5a2a', '#9a7a4a'], 325: ['#1a0a2a', '#0a001a', '#2a1a3a'],
+        326: ['#3a3a3a', '#2a2a2a', '#4a4a4a'], 327: ['#707070', '#606060', '#808080'],
+        328: ['#8a6a3a', '#7a5a2a', '#9a7a4a'], 329: ['#8a6a3a', '#7a5a2a', '#9a7a4a'],
+        330: ['#8a6a3a', '#7a5a2a', '#9a7a4a'], 331: ['#8a6a3a', '#7a5a2a', '#9a7a4a'],
+        332: ['#707070', '#606060', '#808080'], 333: ['#3a3a3a', '#2a2a2a', '#4a4a4a'],
+        334: ['#8a6a3a', '#7a5a2a', '#9a7a4a'], 335: ['#a0a040', '#909030', '#b0b050'],
+        336: ['#c02020', '#b01010', '#d03030'], 337: ['#8a6a3a', '#7a5a2a', '#9a7a4a'],
+        338: ['#5a3a1a', '#4a2a0a', '#6a4a2a'], 339: ['#1a0a1a', '#0a000a', '#2a1a2a'],
+        350: ['#c08020', '#b07010', '#d09030'], 351: ['#3a3a3a', '#2a2a2a', '#4a4a4a'],
+        352: ['#1a3a4a', '#0a2a3a', '#2a4a5a'], 353: ['#5a3a1a', '#4a2a0a', '#6a4a2a'],
+        354: ['#1a3a4a', '#0a2a3a', '#2a4a5a'], 355: ['#e0e0d0', '#d0d0c0', '#f0f0e0'],
+        356: ['#f0f0f0', '#e0e0e0', '#ffffff'], 357: ['#806030', '#705020', '#907040'],
+        358: ['#1a3a4a', '#0a2a3a', '#2a4a5a'],
+        370: ['#c02020', '#b01010', '#d03030'], 371: ['#707070', '#606060', '#808080'],
+        372: ['#707070', '#606060', '#808080'], 373: ['#c02020', '#b01010', '#d03030'],
+        374: ['#707070', '#606060', '#808080'], 375: ['#707070', '#606060', '#808080'],
+        376: ['#707070', '#606060', '#808080'], 377: ['#c0a040', '#b09030', '#d0b050'],
+        378: ['#5a8a3a', '#4a7a2a', '#6a9a4a'], 379: ['#707070', '#606060', '#808080'],
+        380: ['#707070', '#606060', '#808080'], 381: ['#3a3a3a', '#2a2a2a', '#4a4a4a'],
+        382: ['#707070', '#606060', '#808080'], 383: ['#806030', '#705020', '#907040'],
+        390: ['#e06020', '#d05010', '#f07030'], 391: ['#3060c0', '#2050b0', '#4070d0'],
+        400: ['#5a8a2a', '#4a7a1a', '#6a9a3a'], 401: ['#3a7a3a', '#2a6a2a', '#4a8a4a'],
+        402: ['#a0c060', '#90b050', '#b0d070'], 403: ['#3a7a2a', '#2a6a1a', '#4a8a3a'],
+        404: ['#3a7a5a', '#2a6a4a', '#4a8a6a'], 405: ['#3a2a2a', '#2a1a1a', '#4a3a3a'],
+        406: ['#2a2018', '#1a1008', '#3a3028'], 407: ['#3a2010', '#2a1000', '#4a3020'],
+        408: ['#704040', '#603030', '#805050'], 409: ['#2a2a30', '#1a1a20', '#3a3a40'],
+        410: ['#1a1a1a', '#0a0a0a', '#2a2a2a'],
+        // 结构方块颜色
+        600: ['#b08040', '#a07030', '#c09050'], 601: ['#e0e0e0', '#d0d0d0', '#f0f0f0'],
+        602: ['#8a6a3a', '#7a5a2a', '#9a7a4a'], 603: ['#d0d0d0', '#c0c0c0', '#e0e0e0'],
+        604: ['#a0c0d0', '#90b0c0', '#b0d0e0'], 605: ['#8a6a3a', '#7a5a2a', '#9a7a4a'],
+        606: ['#d0d0d0', '#c0c0c0', '#e0e0e0'], 607: ['#8a6a3a', '#7a5a2a', '#9a7a4a'],
+        608: ['#8a6a3a', '#7a5a2a', '#9a7a4a'], 609: ['#3a3a3a', '#2a2a2a', '#4a4a4a'],
+        610: ['#e0e0d0', '#d0d0c0', '#f0f0e0'], 611: ['#5a8a3a', '#4a7a2a', '#6a9a4a'],
+        612: ['#3a7a2a', '#2a6a1a', '#4a8a3a'], 613: ['#ff8080', '#e07070', '#ff9090'],
+        614: ['#ff6060', '#e05050', '#ff7070'], 615: ['#e0e040', '#d0d030', '#f0f050'],
+        616: ['#1a0a1a', '#0a000a', '#2a1a2a'], 617: ['#1a3a1a', '#0a2a0a', '#2a4a2a'],
+        618: ['#000000', '#000000', '#000000'], 619: ['#000000', '#000000', '#000000'],
+        620: ['#9a3a9a', '#8a2a8a', '#aa4aaa'], 621: ['#9a3a9a', '#8a2a8a', '#aa4aaa'],
+        622: ['#f0f0f0', '#e0e0e0', '#ffffff']
+    };
+    
+    if (FLOWER_COLORS[type]) {
+        const c = FLOWER_COLORS[type];
+        ctx.fillStyle = c[0];
+        ctx.fillRect(0, 0, size, size);
+        
+        if (type >= 500 && type <= 519) {
+            ctx.clearRect(0, 0, size, size);
+            ctx.fillStyle = c[0];
+            ctx.fillRect(size/2 - 1, 0, 2, size);
+            if (type < 516) {
+                ctx.fillRect(0, size/2 - 2, size, 4);
+                ctx.fillRect(size/2 - 3, size/2 - 3, 6, 6);
+            } else {
+                ctx.fillRect(size/2 - 2, 0, 4, size);
+            }
+            ctx.fillStyle = c[1];
+            for (let i = 0; i < 3; i++) {
+                const x = Math.random() * size;
+                const y = Math.random() * size;
+                ctx.fillRect(x, y, 1, 1);
+            }
+        }
+        return canvas;
+    }
+    
+    const c = baseColors[type] || baseColors[3];
+    ctx.fillStyle = c[0];
+    ctx.fillRect(0, 0, size, size);
+    
+    for (let i = 0; i < size; i++) {
+        for (let j = 0; j < size; j++) {
+            const noise = Math.random();
+            if (noise < 0.3) { ctx.fillStyle = c[1]; ctx.fillRect(i, j, 1, 1); }
+            else if (noise > 0.7) { ctx.fillStyle = c[2]; ctx.fillRect(i, j, 1, 1); }
+        }
+    }
+    
+    if (type === 1) {
+        ctx.fillStyle = '#5a8a3a'; ctx.fillRect(0, 0, size, size);
+        for (let i = 0; i < size; i++) for (let j = 0; j < size; j++) {
+            const noise = Math.random();
+            if (noise < 0.3) ctx.fillStyle = '#4a7a2a';
+            else if (noise > 0.7) ctx.fillStyle = '#6a9a4a';
+            else continue;
+            ctx.fillRect(i, j, 1, 1);
+        }
+    } else if ([4, 180, 181, 182, 183, 184, 185, 186].includes(type)) {
+        ctx.strokeStyle = c[1]; ctx.lineWidth = 1;
+        for (let r = 2; r < size/2; r += 3) {
+            ctx.beginPath(); ctx.arc(size/2, size/2, r, 0, Math.PI * 2); ctx.stroke();
+        }
+    } else if (type === 14) {
+        ctx.clearRect(0, 0, size, size);
+        ctx.fillStyle = 'rgba(180, 220, 240, 0.25)'; ctx.fillRect(0, 0, size, size);
+        ctx.strokeStyle = 'rgba(220, 240, 255, 0.9)'; ctx.lineWidth = 1;
+        ctx.strokeRect(0.5, 0.5, size-1, size-1);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.beginPath(); ctx.moveTo(2, 2); ctx.lineTo(size-3, 2);
+        ctx.moveTo(2, 2); ctx.lineTo(2, size-3); ctx.stroke();
+    } else if (type === 15) {
+        ctx.strokeStyle = '#603020'; ctx.lineWidth = 1;
+        for (let y = 0; y < size; y += 4) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke();
+        }
+        for (let y = 0; y < size; y += 4) {
+            const offset = (y / 4) % 2 === 0 ? 0 : 4;
+            for (let x = offset; x < size; x += 8) {
+                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 4); ctx.stroke();
+            }
+        }
+    } else if (type >= 9 && type <= 12) {
+        const oreColors = {9: '#1a1a1a', 10: '#d0a080', 11: '#ffd700', 12: '#50f0ff'};
+        ctx.fillStyle = oreColors[type];
+        for (let i = 0; i < 5; i++) {
+            const x = Math.random() * size, y = Math.random() * size;
+            ctx.beginPath(); ctx.arc(x, y, 1 + Math.random() * 2, 0, Math.PI * 2); ctx.fill();
+        }
+    } else if (type >= 120 && type <= 134) {
+        const oreColors = {
+            120: '#1a1a1a', 121: '#d0a080', 122: '#c87543', 123: '#c87543',
+            124: '#ffd700', 125: '#c02020', 126: '#c02020', 127: '#50f0ff',
+            128: '#50ff50', 129: '#50ff50', 130: '#2050c0', 131: '#2050c0',
+            132: '#ffffff', 133: '#ffd700', 134: '#8a4a3a'
+        };
+        ctx.fillStyle = oreColors[type] || '#ffffff';
+        for (let i = 0; i < 5; i++) {
+            const x = Math.random() * size, y = Math.random() * size;
+            ctx.beginPath(); ctx.arc(x, y, 1 + Math.random() * 2, 0, Math.PI * 2); ctx.fill();
+        }
+    } else if (STAINED_GLASS_BLOCKS.has(type)) {
+        const color = STAINED_GLASS_COLORS[type];
+        ctx.clearRect(0, 0, size, size);
+        ctx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.4)`;
+        ctx.fillRect(0, 0, size, size);
+        ctx.strokeStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.9)`;
+        ctx.lineWidth = 1; ctx.strokeRect(0.5, 0.5, size-1, size-1);
+    } else if (CONCRETE_COLORS[type]) {
+        const color = CONCRETE_COLORS[type];
+        ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+        ctx.fillRect(0, 0, size, size);
+        for (let i = 0; i < size; i++) for (let j = 0; j < size; j++) {
+            if (Math.random() < 0.1) {
+                ctx.fillStyle = `rgba(${Math.max(0,color[0]-20)}, ${Math.max(0,color[1]-20)}, ${Math.max(0,color[2]-20)}, 1)`;
+                ctx.fillRect(i, j, 1, 1);
+            }
+        }
+    } else if (WOOL_COLORS[type]) {
+        const color = WOOL_COLORS[type];
+        ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+        ctx.fillRect(0, 0, size, size);
+        ctx.strokeStyle = `rgba(${Math.max(0,color[0]-30)}, ${Math.max(0,color[1]-30)}, ${Math.max(0,color[2]-30)}, 0.5)`;
+        ctx.lineWidth = 0.5;
+        for (let y = 0; y < size; y += 2) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke();
+        }
+        for (let x = 0; x < size; x += 2) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, size); ctx.stroke();
+        }
+    } else if ([230, 231, 237, 238].includes(type)) {
+        ctx.strokeStyle = c[1]; ctx.lineWidth = 1;
+        for (let y = 0; y < size; y += 4) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke();
+        }
+        for (let y = 0; y < size; y += 4) {
+            const offset = (y / 4) % 2 === 0 ? 0 : 4;
+            for (let x = offset; x < size; x += 8) {
+                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 4); ctx.stroke();
+            }
+        }
+    } else if (type === 336) {
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 4, size, size-8);
+        ctx.fillStyle = '#000000'; ctx.font = 'bold 4px Arial'; ctx.textAlign = 'center';
+        ctx.fillText('TNT', size/2, size/2);
+    } else if (type === 390) {
+        for (let i = 0; i < 10; i++) {
+            const x = Math.random() * size, y = Math.random() * size;
+            ctx.fillStyle = `rgba(255, ${100 + Math.random()*100}, 0, 0.8)`;
+            ctx.beginPath(); ctx.arc(x, y, 1 + Math.random() * 2, 0, Math.PI * 2); ctx.fill();
+        }
+    }
+    
+    return canvas;
+}
+
+function generateHDTexture(type) {
+    const lowRes = generateTexture(type, 16);
+    const canvas = document.createElement('canvas');
+    canvas.width = 64; canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(lowRes, 0, 0, 64, 64);
+    
+    if (type !== 14 && !STAINED_GLASS_BLOCKS.has(type) && type !== 166 && type !== 167 && type !== 168 && !FLOWER_COLORS[type]) {
+        const imageData = ctx.getImageData(0, 0, 64, 64);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+            const noise = (Math.random() - 0.5) * 20;
+            data[i] = Math.max(0, Math.min(255, data[i] + noise));
+            data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise));
+            data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise));
+        }
+        ctx.putImageData(imageData, 0, 0);
+    }
+    return canvas;
+}
+
+// ========== 生物群系生成器 ==========
+class BiomeGenerator {
+    constructor(seed) {
+        this.seed = seed;
+        this.tempNoise = new NoiseGenerator(seed);
+        this.humidityNoise = new NoiseGenerator(seed + 1);
+        this.biomeNoise = new NoiseGenerator(seed + 2);
+        this.detailNoise = new NoiseGenerator(seed + 3);
+        this.mountainNoise = new NoiseGenerator(seed + 4);
+        this.riverNoise = new NoiseGenerator(seed + 5);
+        this.caveNoise = new NoiseGenerator(seed + 6);
+        this.caveEntranceNoise = new NoiseGenerator(seed + 7);
+        this.structureNoise = new NoiseGenerator(seed + 8);
+    }
+    
+    getBiome(x, z) {
+        const temp = this.tempNoise.octaveNoise(x, z, 4, 0.5, 0.003);
+        const humidity = this.humidityNoise.octaveNoise(x, z, 4, 0.5, 0.003);
+        const biomeVar = this.biomeNoise.octaveNoise(x, z, 3, 0.5, 0.005);
+        const detail = this.detailNoise.noise2D(x * 0.02, z * 0.02);
+        
+        return this.getOverworldBiome(temp, humidity, biomeVar, detail, x, z);
+    }
+    
+    getOverworldBiome(temp, humidity, biomeVar, detail, x, z) {
+        const oceanNoise = this.biomeNoise.octaveNoise(x, z, 3, 0.5, 0.002);
+        if (oceanNoise < -0.4) {
+            if (temp > 0.7) return BIOMES.WARM_OCEAN;
+            if (temp > 0.4) return oceanNoise < -0.6 ? BIOMES.LUKEWARM_DEEP_OCEAN : BIOMES.LUKEWARM_OCEAN;
+            if (temp > 0.0) return oceanNoise < -0.6 ? BIOMES.DEEP_OCEAN : BIOMES.OCEAN;
+            if (temp > -0.3) return oceanNoise < -0.6 ? BIOMES.COLD_DEEP_OCEAN : BIOMES.COLD_OCEAN;
+            return oceanNoise < -0.6 ? BIOMES.FROZEN_DEEP_OCEAN : BIOMES.FROZEN_OCEAN;
+        }
+        
+        const riverNoise = this.riverNoise.octaveNoise(x, z, 3, 0.5, 0.004);
+        if (Math.abs(riverNoise) < 0.03) {
+            return temp < -0.3 ? BIOMES.FROZEN_RIVER : BIOMES.RIVER;
+        }
+        
+        const height = this.getHeight(x, z);
+        if (height <= 22 && height > 18) {
+            if (temp < -0.3) return BIOMES.SNOWY_BEACH;
+            return BIOMES.BEACH;
+        }
+        if (height <= 18 && height > 15) {
+            return BIOMES.STONY_SHORE;
+        }
+        
+        if (height > 55) {
+            if (temp < -0.5) return BIOMES.JAGGED_PEAKS;
+            if (temp < -0.2) return BIOMES.FROZEN_PEAKS;
+            return BIOMES.STONY_PEAKS;
+        }
+        if (height > 45) {
+            if (temp < -0.3) return BIOMES.SNOWY_SLOPES;
+            if (temp < 0.0) return BIOMES.GROVE;
+            return BIOMES.WINDSWEPT_HILLS;
+        }
+        if (height > 38) {
+            return biomeVar > 0 ? BIOMES.WINDSWEPT_FOREST : BIOMES.MEADOW;
+        }
+        if (height > 34 && biomeVar < -0.2) {
+            return BIOMES.WINDSWEPT_GRAVELLY_HILLS;
+        }
+        
+        if (temp < -0.3) {
+            if (humidity > 0.5) return BIOMES.SNOWY_TAIGA;
+            if (biomeVar > 0.3) return BIOMES.ICE_SPIKES;
+            return BIOMES.SNOWY_PLAINS;
+        }
+        
+        if (temp < 0.2) {
+            if (humidity > 0.7) return BIOMES.SWAMP;
+            if (humidity > 0.5) {
+                return biomeVar > 0.3 ? BIOMES.OLD_GROWTH_PINE_TAIGA : 
+                       biomeVar > 0 ? BIOMES.OLD_GROWTH_SPRUCE_TAIGA : BIOMES.TAIGA;
+            }
+            if (humidity > 0.3) return biomeVar > 0.3 ? BIOMES.DARK_FOREST : BIOMES.FOREST;
+            return BIOMES.WINDSWEPT_GRAVELLY_HILLS;
+        }
+        
+        if (temp < 0.5) {
+            if (humidity > 0.8) return BIOMES.JUNGLE;
+            if (humidity > 0.6) {
+                return biomeVar > 0.3 ? BIOMES.OLD_BIRCH_FOREST : 
+                       biomeVar > 0 ? BIOMES.BIRCH_FOREST : BIOMES.FOREST;
+            }
+            if (humidity > 0.4) {
+                return biomeVar > 0.5 ? BIOMES.FLOWER_FOREST : 
+                       biomeVar > 0 ? BIOMES.SUNFLOWER_PLAINS : BIOMES.PLAINS;
+            }
+            if (humidity > 0.2) return BIOMES.SAVANNA;
+            return BIOMES.DESERT;
+        }
+        
+        if (humidity > 0.7) return biomeVar > 0.3 ? BIOMES.BAMBOO_JUNGLE : BIOMES.SPARSE_JUNGLE;
+        if (humidity > 0.5) return BIOMES.SPARSE_JUNGLE;
+        if (humidity > 0.3) return biomeVar > 0 ? BIOMES.SAVANNA_PLATEAU : BIOMES.SAVANNA;
+        if (humidity > 0.1) {
+            return biomeVar > 0.3 ? BIOMES.WOODED_BADLANDS : 
+                   biomeVar > 0 ? BIOMES.ERODED_BADLANDS : BIOMES.BADLANDS;
+        }
+        return biomeVar > 0 ? BIOMES.ERODED_BADLANDS : BIOMES.DESERT;
+    }
+    
+    getHeight(x, z) {
+        const scale = 0.015;
+        const baseHeight = this.tempNoise.octaveNoise(x, z, 5, 0.5, scale);
+        let height = Math.floor((baseHeight + 1) * 15 + 20);
+        
+        const mountainValue = this.mountainNoise.octaveNoise(x, z, 4, 0.6, 0.008);
+        if (mountainValue > 0.3) {
+            const mountainHeight = (mountainValue - 0.3) * 80;
+            height += Math.floor(mountainHeight);
+        }
+        
+        const riverNoise = this.riverNoise.octaveNoise(x, z, 3, 0.5, 0.004);
+        if (Math.abs(riverNoise) < 0.03) {
+            height = Math.min(height, 25);
+        }
+        
+        return Math.max(1, Math.min(height, 80));
+    }
+    
+    isCave(x, y, z) {
+        if (y < 3 || y > 50) return false;
+        
+        const caveNoise1 = this.caveNoise.octaveNoise3D(x, y, z, 3, 0.5, 0.03);
+        const caveNoise2 = this.caveNoise.octaveNoise3D(x + 100, y, z, 3, 0.5, 0.025);
+        
+        if (caveNoise1 > 0.6 && caveNoise2 > 0.3) return true;
+        
+        const largeCaveNoise = this.caveNoise.octaveNoise3D(x, y * 2, z, 2, 0.5, 0.015);
+        if (largeCaveNoise > 0.7) return true;
+        
+        return false;
+    }
+    
+    isCaveEntrance(x, z, surfaceHeight) {
+        const entranceNoise = this.caveEntranceNoise.octaveNoise(x, z, 3, 0.5, 0.02);
+        return entranceNoise > 0.5;
+    }
+    
+    getCaveEntranceDepth(x, z) {
+        const entranceNoise = this.caveEntranceNoise.octaveNoise(x, z, 3, 0.5, 0.02);
+        return Math.floor((entranceNoise - 0.5) * 20);
+    }
+    
+    // 结构生成概率检测
+    shouldGenerateStructure(x, z, structureType) {
+        const noise = this.structureNoise.noise2D(x * 0.1, z * 0.1);
+        const seed = (x * 73856093) ^ (z * 19349663) ^ structureType;
+        const random = ((seed % 1000) / 1000 + 1) % 1;
+        
+        const chances = {
+            'village': 0.002,
+            'desert_temple': 0.001,
+            'jungle_temple': 0.001,
+            'swamp_hut': 0.002,
+            'igloo': 0.001,
+            'pillager_outpost': 0.002,
+            'woodland_mansion': 0.0005,
+            'ruined_portal': 0.005,
+            'mineshaft': 0.01,
+            'stronghold': 0.001,
+            'fossil': 0.01,
+            'desert_well': 0.01,
+            'ocean_monument': 0.002,
+            'shipwreck': 0.005,
+            'ocean_ruin': 0.005,
+            'buried_treasure': 0.005,
+            'nether_fortress': 0.002,
+            'bastion_remnant': 0.002,
+            'end_city': 0.001
+        };
+        
+        return random < (chances[structureType] || 0.001);
+    }
+}
+
+// ========== 结构生成器 ==========
+class StructureGenerator {
+    constructor(seed) {
+        this.seed = seed;
+    }
+    
+    tryGenerateStructure(world, chunk, cx, cz, startX, startZ) {
+        const biome = world.getBiomeAt(startX, startZ);
+        
+        // 检查并生成结构
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'village')) {
+            this.generateVillage(world, chunk, cx, cz, startX, startZ, biome);
+        }
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'desert_temple')) {
+            this.generateDesertTemple(world, chunk, cx, cz, startX, startZ);
+        }
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'jungle_temple')) {
+            this.generateJungleTemple(world, chunk, cx, cz, startX, startZ);
+        }
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'swamp_hut')) {
+            this.generateSwampHut(world, chunk, cx, cz, startX, startZ);
+        }
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'igloo')) {
+            this.generateIgloo(world, chunk, cx, cz, startX, startZ);
+        }
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'pillager_outpost')) {
+            this.generatePillagerOutpost(world, chunk, cx, cz, startX, startZ);
+        }
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'woodland_mansion')) {
+            this.generateWoodlandMansion(world, chunk, cx, cz, startX, startZ);
+        }
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'ruined_portal')) {
+            this.generateRuinedPortal(world, chunk, cx, cz, startX, startZ);
+        }
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'mineshaft')) {
+            this.generateMineshaft(world, chunk, cx, cz, startX, startZ);
+        }
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'stronghold')) {
+            this.generateStronghold(world, chunk, cx, cz, startX, startZ);
+        }
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'fossil')) {
+            this.generateFossil(world, chunk, cx, cz, startX, startZ);
+        }
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'desert_well')) {
+            this.generateDesertWell(world, chunk, cx, cz, startX, startZ);
+        }
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'ocean_monument')) {
+            this.generateOceanMonument(world, chunk, cx, cz, startX, startZ);
+        }
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'shipwreck')) {
+            this.generateShipwreck(world, chunk, cx, cz, startX, startZ);
+        }
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'ocean_ruin')) {
+            this.generateOceanRuin(world, chunk, cx, cz, startX, startZ);
+        }
+        if (world.biomeGen.shouldGenerateStructure(startX, startZ, 'buried_treasure')) {
+            this.generateBuriedTreasure(world, chunk, cx, cz, startX, startZ);
+        }
+    }
+    
+    setBlock(chunk, x, y, z, type, chunkSize, worldHeight) {
+        if (x >= 0 && x < chunkSize && y >= 0 && y < worldHeight && z >= 0 && z < chunkSize) {
+            chunk[x][y][z] = type;
+        }
+    }
+    
+    // 村庄生成
+    generateVillage(world, chunk, cx, cz, startX, startZ, biome) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        
+        // 根据生物群系选择建筑材料
+        let wallBlock, roofBlock, floorBlock;
+        if (biome.id === 'desert') {
+            wallBlock = BLOCK_TYPES.SANDSTONE;
+            roofBlock = BLOCK_TYPES.SANDSTONE;
+            floorBlock = BLOCK_TYPES.SANDSTONE;
+        } else if (biome.id === 'savanna' || biome.id === 'savanna_plateau') {
+            wallBlock = BLOCK_TYPES.ACACIA_PLANKS;
+            roofBlock = BLOCK_TYPES.ACACIA_LOG;
+            floorBlock = BLOCK_TYPES.ACACIA_PLANKS;
+        } else if (biome.id === 'snowy_plains' || biome.id === 'snowy_taiga') {
+            wallBlock = BLOCK_TYPES.SPRUCE_PLANKS;
+            roofBlock = BLOCK_TYPES.SNOW;
+            floorBlock = BLOCK_TYPES.SPRUCE_PLANKS;
+        } else {
+            wallBlock = BLOCK_TYPES.PLANKS;
+            roofBlock = BLOCK_TYPES.WOOD;
+            floorBlock = BLOCK_TYPES.PLANKS;
+        }
+        
+        // 生成几座房屋
+        for (let i = 0; i < 3; i++) {
+            const offsetX = Math.floor(Math.random() * 10) + 2;
+            const offsetZ = Math.floor(Math.random() * 10) + 2;
+            const houseHeight = 4;
+            
+            // 房屋墙壁
+            for (let x = 0; x < 5; x++) {
+                for (let y = 0; y < houseHeight; y++) {
+                    this.setBlock(chunk, offsetX + x, height + y, offsetZ, wallBlock, chunkSize, worldHeight);
+                    this.setBlock(chunk, offsetX + x, height + y, offsetZ + 4, wallBlock, chunkSize, worldHeight);
+                }
+            }
+            for (let z = 0; z < 5; z++) {
+                for (let y = 0; y < houseHeight; y++) {
+                    this.setBlock(chunk, offsetX, height + y, offsetZ + z, wallBlock, chunkSize, worldHeight);
+                    this.setBlock(chunk, offsetX + 4, height + y, offsetZ + z, wallBlock, chunkSize, worldHeight);
+                }
+            }
+            
+            // 地板
+            for (let x = 0; x < 5; x++) {
+                for (let z = 0; z < 5; z++) {
+                    this.setBlock(chunk, offsetX + x, height - 1, offsetZ + z, floorBlock, chunkSize, worldHeight);
+                }
+            }
+            
+            // 屋顶
+            for (let x = 0; x < 5; x++) {
+                for (let z = 0; z < 5; z++) {
+                    this.setBlock(chunk, offsetX + x, height + houseHeight, offsetZ + z, roofBlock, chunkSize, worldHeight);
+                }
+            }
+            
+            // 门
+            this.setBlock(chunk, offsetX + 2, height, offsetZ + 2, BLOCK_TYPES.AIR, chunkSize, worldHeight);
+            this.setBlock(chunk, offsetX + 2, height + 1, offsetZ + 2, BLOCK_TYPES.AIR, chunkSize, worldHeight);
+            
+            // 工作台和熔炉
+            this.setBlock(chunk, offsetX + 1, height, offsetZ + 1, BLOCK_TYPES.CRAFTING_TABLE, chunkSize, worldHeight);
+            this.setBlock(chunk, offsetX + 3, height, offsetZ + 1, BLOCK_TYPES.FURNACE, chunkSize, worldHeight);
+        }
+    }
+    
+    // 沙漠神殿
+    generateDesertTemple(world, chunk, cx, cz, startX, startZ) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        
+        // 金字塔形状
+        for (let y = 0; y < 8; y++) {
+            for (let x = y; x < 16 - y; x++) {
+                for (let z = y; z < 16 - y; z++) {
+                    this.setBlock(chunk, x, height + y, z, BLOCK_TYPES.SANDSTONE, chunkSize, worldHeight);
+                }
+            }
+        }
+        
+        // 内部空间
+        for (let y = 1; y < 7; y++) {
+            for (let x = 4; x < 12; x++) {
+                for (let z = 4; z < 12; z++) {
+                    this.setBlock(chunk, x, height + y, z, BLOCK_TYPES.AIR, chunkSize, worldHeight);
+                }
+            }
+        }
+        
+        // 地下室和TNT陷阱
+        for (let y = 1; y < 4; y++) {
+            for (let x = 5; x < 11; x++) {
+                for (let z = 5; z < 11; z++) {
+                    this.setBlock(chunk, x, height - y, z, BLOCK_TYPES.AIR, chunkSize, worldHeight);
+                }
+            }
+        }
+        
+        // TNT
+        this.setBlock(chunk, 8, height - 3, 8, BLOCK_TYPES.TNT, chunkSize, worldHeight);
+        
+        // 战利品箱
+        this.setBlock(chunk, 6, height - 3, 6, BLOCK_TYPES.CHEST, chunkSize, worldHeight);
+        this.setBlock(chunk, 10, height - 3, 6, BLOCK_TYPES.CHEST, chunkSize, worldHeight);
+        this.setBlock(chunk, 6, height - 3, 10, BLOCK_TYPES.CHEST, chunkSize, worldHeight);
+        this.setBlock(chunk, 10, height - 3, 10, BLOCK_TYPES.CHEST, chunkSize, worldHeight);
+    }
+    
+    // 丛林神庙
+    generateJungleTemple(world, chunk, cx, cz, startX, startZ) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        
+        // 石砖建筑
+        for (let y = 0; y < 6; y++) {
+            for (let x = 2; x < 14; x++) {
+                this.setBlock(chunk, x, height + y, 2, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+                this.setBlock(chunk, x, height + y, 13, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+            }
+            for (let z = 2; z < 14; z++) {
+                this.setBlock(chunk, 2, height + y, z, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+                this.setBlock(chunk, 13, height + y, z, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+            }
+        }
+        
+        // 内部空间
+        for (let y = 1; y < 5; y++) {
+            for (let x = 3; x < 13; x++) {
+                for (let z = 3; z < 13; z++) {
+                    this.setBlock(chunk, x, height + y, z, BLOCK_TYPES.AIR, chunkSize, worldHeight);
+                }
+            }
+        }
+        
+        // 地板
+        for (let x = 3; x < 13; x++) {
+            for (let z = 3; z < 13; z++) {
+                this.setBlock(chunk, x, height, z, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+            }
+        }
+        
+        // 屋顶
+        for (let x = 2; x < 14; x++) {
+            for (let z = 2; z < 14; z++) {
+                this.setBlock(chunk, x, height + 6, z, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+            }
+        }
+        
+        // 战利品箱
+        this.setBlock(chunk, 8, height + 1, 8, BLOCK_TYPES.CHEST, chunkSize, worldHeight);
+    }
+    
+    // 沼泽小屋
+    generateSwampHut(world, chunk, cx, cz, startX, startZ) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        
+        // 小木屋
+        for (let y = 0; y < 4; y++) {
+            for (let x = 5; x < 11; x++) {
+                this.setBlock(chunk, x, height + y, 5, BLOCK_TYPES.SPRUCE_PLANKS, chunkSize, worldHeight);
+                this.setBlock(chunk, x, height + y, 10, BLOCK_TYPES.SPRUCE_PLANKS, chunkSize, worldHeight);
+            }
+            for (let z = 5; z < 11; z++) {
+                this.setBlock(chunk, 5, height + y, z, BLOCK_TYPES.SPRUCE_PLANKS, chunkSize, worldHeight);
+                this.setBlock(chunk, 10, height + y, z, BLOCK_TYPES.SPRUCE_PLANKS, chunkSize, worldHeight);
+            }
+        }
+        
+        // 内部空间
+        for (let y = 1; y < 3; y++) {
+            for (let x = 6; x < 10; x++) {
+                for (let z = 6; z < 10; z++) {
+                    this.setBlock(chunk, x, height + y, z, BLOCK_TYPES.AIR, chunkSize, worldHeight);
+                }
+            }
+        }
+        
+        // 地板和屋顶
+        for (let x = 5; x < 11; x++) {
+            for (let z = 5; z < 11; z++) {
+                this.setBlock(chunk, x, height, z, BLOCK_TYPES.SPRUCE_PLANKS, chunkSize, worldHeight);
+                this.setBlock(chunk, x, height + 4, z, BLOCK_TYPES.SPRUCE_PLANKS, chunkSize, worldHeight);
+            }
+        }
+        
+        // 炼药锅
+        this.setBlock(chunk, 7, height + 1, 7, BLOCK_TYPES.CAULDRON, chunkSize, worldHeight);
+        
+        // 门
+        this.setBlock(chunk, 7, height, 5, BLOCK_TYPES.AIR, chunkSize, worldHeight);
+        this.setBlock(chunk, 7, height + 1, 5, BLOCK_TYPES.AIR, chunkSize, worldHeight);
+    }
+    
+    // 雪屋
+    generateIgloo(world, chunk, cx, cz, startX, startZ) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        
+        // 雪块圆顶
+        for (let y = 0; y < 3; y++) {
+            for (let x = 5; x < 11; x++) {
+                for (let z = 5; z < 11; z++) {
+                    if (Math.abs(x - 7.5) + Math.abs(z - 7.5) + y < 4) {
+                        this.setBlock(chunk, x, height + y, z, BLOCK_TYPES.SNOW, chunkSize, worldHeight);
+                    }
+                }
+            }
+        }
+        
+        // 内部空间
+        for (let y = 0; y < 2; y++) {
+            for (let x = 6; x < 10; x++) {
+                for (let z = 6; z < 10; z++) {
+                    this.setBlock(chunk, x, height + y, z, BLOCK_TYPES.AIR, chunkSize, worldHeight);
+                }
+            }
+        }
+        
+        // 地板
+        for (let x = 5; x < 11; x++) {
+            for (let z = 5; z < 11; z++) {
+                this.setBlock(chunk, x, height - 1, z, BLOCK_TYPES.SNOW, chunkSize, worldHeight);
+            }
+        }
+        
+        // 门
+        this.setBlock(chunk, 7, height, 5, BLOCK_TYPES.AIR, chunkSize, worldHeight);
+        this.setBlock(chunk, 8, height, 5, BLOCK_TYPES.AIR, chunkSize, worldHeight);
+    }
+    
+    // 掠夺者前哨站
+    generatePillagerOutpost(world, chunk, cx, cz, startX, startZ) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        
+        // 高塔
+        for (let y = 0; y < 12; y++) {
+            for (let x = 6; x < 10; x++) {
+                this.setBlock(chunk, x, height + y, 6, BLOCK_TYPES.DARK_OAK_LOG, chunkSize, worldHeight);
+                this.setBlock(chunk, x, height + y, 9, BLOCK_TYPES.DARK_OAK_LOG, chunkSize, worldHeight);
+            }
+            for (let z = 6; z < 10; z++) {
+                this.setBlock(chunk, 6, height + y, z, BLOCK_TYPES.DARK_OAK_LOG, chunkSize, worldHeight);
+                this.setBlock(chunk, 9, height + y, z, BLOCK_TYPES.DARK_OAK_LOG, chunkSize, worldHeight);
+            }
+        }
+        
+        // 顶部平台
+        for (let x = 5; x < 11; x++) {
+            for (let z = 5; z < 11; z++) {
+                this.setBlock(chunk, x, height + 12, z, BLOCK_TYPES.DARK_OAK_PLANKS, chunkSize, worldHeight);
+            }
+        }
+        
+        // 战利品箱
+        this.setBlock(chunk, 7, height + 13, 7, BLOCK_TYPES.CHEST, chunkSize, worldHeight);
+    }
+    
+    // 林地府邸
+    generateWoodlandMansion(world, chunk, cx, cz, startX, startZ) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        
+        // 大型深色橡木结构
+        for (let y = 0; y < 8; y++) {
+            for (let x = 1; x < 15; x++) {
+                this.setBlock(chunk, x, height + y, 1, BLOCK_TYPES.DARK_OAK_PLANKS, chunkSize, worldHeight);
+                this.setBlock(chunk, x, height + y, 14, BLOCK_TYPES.DARK_OAK_PLANKS, chunkSize, worldHeight);
+            }
+            for (let z = 1; z < 15; z++) {
+                this.setBlock(chunk, 1, height + y, z, BLOCK_TYPES.DARK_OAK_PLANKS, chunkSize, worldHeight);
+                this.setBlock(chunk, 14, height + y, z, BLOCK_TYPES.DARK_OAK_PLANKS, chunkSize, worldHeight);
+            }
+        }
+        
+        // 内部空间
+        for (let y = 1; y < 7; y++) {
+            for (let x = 2; x < 14; x++) {
+                for (let z = 2; z < 14; z++) {
+                    this.setBlock(chunk, x, height + y, z, BLOCK_TYPES.AIR, chunkSize, worldHeight);
+                }
+            }
+        }
+        
+        // 地板和屋顶
+        for (let x = 1; x < 15; x++) {
+            for (let z = 1; z < 15; z++) {
+                this.setBlock(chunk, x, height, z, BLOCK_TYPES.DARK_OAK_PLANKS, chunkSize, worldHeight);
+                this.setBlock(chunk, x, height + 8, z, BLOCK_TYPES.DARK_OAK_PLANKS, chunkSize, worldHeight);
+            }
+        }
+        
+        // 战利品箱
+        this.setBlock(chunk, 8, height + 1, 8, BLOCK_TYPES.CHEST, chunkSize, worldHeight);
+    }
+    
+    // 废弃传送门
+    generateRuinedPortal(world, chunk, cx, cz, startX, startZ) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        
+        // 破损的黑曜石框架
+        for (let y = 0; y < 5; y++) {
+            this.setBlock(chunk, 7, height + y, 7, BLOCK_TYPES.OBSIDIAN, chunkSize, worldHeight);
+            this.setBlock(chunk, 8, height + y, 7, BLOCK_TYPES.OBSIDIAN, chunkSize, worldHeight);
+            if (y < 4 && Math.random() > 0.3) {
+                this.setBlock(chunk, 7, height + y, 8, BLOCK_TYPES.OBSIDIAN, chunkSize, worldHeight);
+                this.setBlock(chunk, 8, height + y, 8, BLOCK_TYPES.OBSIDIAN, chunkSize, worldHeight);
+            }
+        }
+        
+        // 哭泣的黑曜石
+        this.setBlock(chunk, 7, height + 5, 7, BLOCK_TYPES.CRYING_OBSIDIAN, chunkSize, worldHeight);
+        
+        // 岩浆池
+        for (let x = 5; x < 11; x++) {
+            for (let z = 5; z < 11; z++) {
+                this.setBlock(chunk, x, height - 1, z, BLOCK_TYPES.LAVA, chunkSize, worldHeight);
+            }
+        }
+    }
+    
+    // 废弃矿井
+    generateMineshaft(world, chunk, cx, cz, startX, startZ) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        const mineY = Math.max(5, height - 15);
+        
+        // 木板支撑
+        for (let x = 0; x < 16; x += 4) {
+            for (let y = 0; y < 4; y++) {
+                this.setBlock(chunk, x, mineY + y, 7, BLOCK_TYPES.PLANKS, chunkSize, worldHeight);
+                this.setBlock(chunk, x, mineY + y, 8, BLOCK_TYPES.PLANKS, chunkSize, worldHeight);
+            }
+        }
+        
+        // 隧道
+        for (let x = 0; x < 16; x++) {
+            for (let y = 1; y < 4; y++) {
+                this.setBlock(chunk, x, mineY + y, 7, BLOCK_TYPES.AIR, chunkSize, worldHeight);
+                this.setBlock(chunk, x, mineY + y, 8, BLOCK_TYPES.AIR, chunkSize, worldHeight);
+            }
+            this.setBlock(chunk, x, mineY, 7, BLOCK_TYPES.PLANKS, chunkSize, worldHeight);
+            this.setBlock(chunk, x, mineY, 8, BLOCK_TYPES.PLANKS, chunkSize, worldHeight);
+        }
+        
+        // 蜘蛛网和箱子
+        this.setBlock(chunk, 8, mineY + 2, 7, BLOCK_TYPES.COBWEB, chunkSize, worldHeight);
+        this.setBlock(chunk, 4, mineY + 1, 8, BLOCK_TYPES.CHEST, chunkSize, worldHeight);
+    }
+    
+    // 要塞
+    generateStronghold(world, chunk, cx, cz, startX, startZ) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        const strongY = Math.max(10, height - 20);
+        
+        // 石砖房间
+        for (let y = 0; y < 6; y++) {
+            for (let x = 3; x < 13; x++) {
+                this.setBlock(chunk, x, strongY + y, 3, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+                this.setBlock(chunk, x, strongY + y, 12, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+            }
+            for (let z = 3; z < 13; z++) {
+                this.setBlock(chunk, 3, strongY + y, z, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+                this.setBlock(chunk, 12, strongY + y, z, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+            }
+        }
+        
+        // 内部空间
+        for (let y = 1; y < 5; y++) {
+            for (let x = 4; x < 12; x++) {
+                for (let z = 4; z < 12; z++) {
+                    this.setBlock(chunk, x, strongY + y, z, BLOCK_TYPES.AIR, chunkSize, worldHeight);
+                }
+            }
+        }
+        
+        // 地板和屋顶
+        for (let x = 3; x < 13; x++) {
+            for (let z = 3; z < 13; z++) {
+                this.setBlock(chunk, x, strongY, z, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+                this.setBlock(chunk, x, strongY + 6, z, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+            }
+        }
+        
+        // 末地传送门框架
+        this.setBlock(chunk, 7, strongY + 1, 7, BLOCK_TYPES.END_PORTAL_FRAME, chunkSize, worldHeight);
+        this.setBlock(chunk, 8, strongY + 1, 7, BLOCK_TYPES.END_PORTAL_FRAME, chunkSize, worldHeight);
+        this.setBlock(chunk, 7, strongY + 1, 8, BLOCK_TYPES.END_PORTAL_FRAME, chunkSize, worldHeight);
+        this.setBlock(chunk, 8, strongY + 1, 8, BLOCK_TYPES.END_PORTAL_FRAME, chunkSize, worldHeight);
+        
+        // 书架
+        this.setBlock(chunk, 4, strongY + 1, 4, BLOCK_TYPES.BOOKSHELF, chunkSize, worldHeight);
+        this.setBlock(chunk, 4, strongY + 2, 4, BLOCK_TYPES.BOOKSHELF, chunkSize, worldHeight);
+    }
+    
+    // 化石
+    generateFossil(world, chunk, cx, cz, startX, startZ) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        const fossilY = Math.max(5, height - 8);
+        
+        // 骨块肋骨结构
+        for (let i = 0; i < 5; i++) {
+            this.setBlock(chunk, 3 + i * 2, fossilY, 8, BLOCK_TYPES.BONE_BLOCK, chunkSize, worldHeight);
+            this.setBlock(chunk, 3 + i * 2, fossilY + 1, 8, BLOCK_TYPES.BONE_BLOCK, chunkSize, worldHeight);
+            this.setBlock(chunk, 3 + i * 2, fossilY + 2, 8, BLOCK_TYPES.BONE_BLOCK, chunkSize, worldHeight);
+        }
+        
+        // 头骨
+        this.setBlock(chunk, 12, fossilY, 8, BLOCK_TYPES.BONE_BLOCK, chunkSize, worldHeight);
+        this.setBlock(chunk, 13, fossilY, 8, BLOCK_TYPES.BONE_BLOCK, chunkSize, worldHeight);
+        this.setBlock(chunk, 12, fossilY + 1, 8, BLOCK_TYPES.BONE_BLOCK, chunkSize, worldHeight);
+    }
+    
+    // 沙漠水井
+    generateDesertWell(world, chunk, cx, cz, startX, startZ) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        
+        // 沙石结构
+        for (let x = 6; x < 10; x++) {
+            this.setBlock(chunk, x, height, 6, BLOCK_TYPES.SANDSTONE, chunkSize, worldHeight);
+            this.setBlock(chunk, x, height, 9, BLOCK_TYPES.SANDSTONE, chunkSize, worldHeight);
+        }
+        for (let z = 6; z < 10; z++) {
+            this.setBlock(chunk, 6, height, z, BLOCK_TYPES.SANDSTONE, chunkSize, worldHeight);
+            this.setBlock(chunk, 9, height, z, BLOCK_TYPES.SANDSTONE, chunkSize, worldHeight);
+        }
+        
+        // 水源
+        this.setBlock(chunk, 7, height - 1, 7, BLOCK_TYPES.WATER, chunkSize, worldHeight);
+        this.setBlock(chunk, 8, height - 1, 7, BLOCK_TYPES.WATER, chunkSize, worldHeight);
+        this.setBlock(chunk, 7, height - 1, 8, BLOCK_TYPES.WATER, chunkSize, worldHeight);
+        this.setBlock(chunk, 8, height - 1, 8, BLOCK_TYPES.WATER, chunkSize, worldHeight);
+    }
+    
+    // 海底神殿
+    generateOceanMonument(world, chunk, cx, cz, startX, startZ) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        const oceanY = Math.max(10, height);
+        
+        // 海晶石结构
+        for (let y = 0; y < 8; y++) {
+            for (let x = 2; x < 14; x++) {
+                this.setBlock(chunk, x, oceanY + y, 2, BLOCK_TYPES.PRISMARINE, chunkSize, worldHeight);
+                this.setBlock(chunk, x, oceanY + y, 13, BLOCK_TYPES.PRISMARINE, chunkSize, worldHeight);
+            }
+            for (let z = 2; z < 14; z++) {
+                this.setBlock(chunk, 2, oceanY + y, z, BLOCK_TYPES.PRISMARINE, chunkSize, worldHeight);
+                this.setBlock(chunk, 13, oceanY + y, z, BLOCK_TYPES.PRISMARINE, chunkSize, worldHeight);
+            }
+        }
+        
+        // 内部空间
+        for (let y = 1; y < 7; y++) {
+            for (let x = 3; x < 13; x++) {
+                for (let z = 3; z < 13; z++) {
+                    this.setBlock(chunk, x, oceanY + y, z, BLOCK_TYPES.WATER, chunkSize, worldHeight);
+                }
+            }
+        }
+        
+        // 金块
+        this.setBlock(chunk, 7, oceanY + 1, 7, BLOCK_TYPES.GOLD_BLOCK, chunkSize, worldHeight);
+        this.setBlock(chunk, 8, oceanY + 1, 7, BLOCK_TYPES.GOLD_BLOCK, chunkSize, worldHeight);
+        this.setBlock(chunk, 7, oceanY + 1, 8, BLOCK_TYPES.GOLD_BLOCK, chunkSize, worldHeight);
+        this.setBlock(chunk, 8, oceanY + 1, 8, BLOCK_TYPES.GOLD_BLOCK, chunkSize, worldHeight);
+        
+        // 海晶灯
+        this.setBlock(chunk, 7, oceanY + 7, 7, BLOCK_TYPES.SEA_LANTERN, chunkSize, worldHeight);
+    }
+    
+    // 沉船
+    generateShipwreck(world, chunk, cx, cz, startX, startZ) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        
+        // 船体形状
+        for (let y = 0; y < 4; y++) {
+            for (let x = 2; x < 14; x++) {
+                if (x < 4 || x > 12) {
+                    this.setBlock(chunk, x, height + y, 7, BLOCK_TYPES.PLANKS, chunkSize, worldHeight);
+                    this.setBlock(chunk, x, height + y, 8, BLOCK_TYPES.PLANKS, chunkSize, worldHeight);
+                }
+            }
+        }
+        
+        // 甲板
+        for (let x = 4; x < 12; x++) {
+            this.setBlock(chunk, x, height + 3, 7, BLOCK_TYPES.PLANKS, chunkSize, worldHeight);
+            this.setBlock(chunk, x, height + 3, 8, BLOCK_TYPES.PLANKS, chunkSize, worldHeight);
+        }
+        
+        // 战利品箱
+        this.setBlock(chunk, 7, height + 2, 7, BLOCK_TYPES.CHEST, chunkSize, worldHeight);
+    }
+    
+    // 海底废墟
+    generateOceanRuin(world, chunk, cx, cz, startX, startZ) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        
+        // 淹没的石砖结构
+        for (let y = 0; y < 3; y++) {
+            for (let x = 5; x < 11; x++) {
+                if (Math.random() > 0.3) {
+                    this.setBlock(chunk, x, height + y, 5, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+                    this.setBlock(chunk, x, height + y, 10, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+                }
+            }
+            for (let z = 5; z < 11; z++) {
+                if (Math.random() > 0.3) {
+                    this.setBlock(chunk, 5, height + y, z, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+                    this.setBlock(chunk, 10, height + y, z, BLOCK_TYPES.STONE_BRICKS, chunkSize, worldHeight);
+                }
+            }
+        }
+        
+        // 战利品箱
+        this.setBlock(chunk, 7, height + 1, 7, BLOCK_TYPES.CHEST, chunkSize, worldHeight);
+    }
+    
+    // 埋藏的宝藏
+    generateBuriedTreasure(world, chunk, cx, cz, startX, startZ) {
+        const height = world.biomeGen.getHeight(startX, startZ);
+        const chunkSize = world.chunkSize;
+        const worldHeight = world.worldHeight;
+        
+        // 地下箱子
+        this.setBlock(chunk, 8, height - 2, 8, BLOCK_TYPES.CHEST, chunkSize, worldHeight);
+    }
+}
+
+// ========== 世界管理 ==========
+class World {
+    constructor(scene, seed = 12345) {
+        this.scene = scene;
+        this.seed = seed;
+        this.noise = new NoiseGenerator(seed);
+        this.biomeGen = new BiomeGenerator(seed);
+        this.structures = new StructureGenerator(seed);
+        this.chunks = new Map();
+        this.chunkSize = 16;
+        this.worldHeight = 80;
+        this.renderDistance = 4;
+        this.blockTextures = {};
+        this.blockMaterials = {};
+        this.meshes = new Map();
+        this.defaultWaterLevel = 20;
+        this.chunkQueue = [];
+        this.isProcessingQueue = false;
+        this.maxChunksPerFrame = 1;
+        
+        this.initTextures();
+    }
+    
+    initTextures() {
+        const allBlockTypes = new Set();
+        Object.values(BLOCK_TYPES).forEach(type => {
+            if (type !== 0) allBlockTypes.add(type);
+        });
+        
+        for (const type of allBlockTypes) {
+            if (type === 7) continue;
+            
+            const canvas = generateHDTexture(type);
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.magFilter = THREE.NearestFilter;
+            texture.minFilter = THREE.LinearMipMapLinearFilter;
+            texture.generateMipmaps = true;
+            
+            if (type === 14 || STAINED_GLASS_BLOCKS.has(type)) {
+                texture.premultiplyAlpha = true;
+            }
+            
+            this.blockTextures[type] = texture;
+            
+            if (type >= 500 && type <= 519) {
+                this.blockMaterials[type] = new THREE.MeshLambertMaterial({
+                    map: texture, transparent: true, alphaTest: 0.5,
+                    side: THREE.DoubleSide, color: 0xffffff
+                });
+            } else if (type === 14 || STAINED_GLASS_BLOCKS.has(type)) {
+                this.blockMaterials[type] = new THREE.MeshLambertMaterial({
+                    map: texture, transparent: true, opacity: 0.65,
+                    side: THREE.DoubleSide, depthWrite: true, alphaTest: 0.05, color: 0xffffff
+                });
+            } else if (type === 5 || (type >= 210 && type <= 218)) {
+                this.blockMaterials[type] = new THREE.MeshLambertMaterial({
+                    map: texture, transparent: false, side: THREE.FrontSide, alphaTest: 0.5, color: 0xffffff
+                });
+            } else if (type === 166 || type === 167 || type === 168) {
+                this.blockMaterials[type] = new THREE.MeshLambertMaterial({
+                    map: texture, transparent: true, opacity: type === 168 ? 0.6 : 0.8,
+                    side: THREE.DoubleSide, depthWrite: true, alphaTest: 0.1
+                });
+            } else if (type === 390) {
+                this.blockMaterials[type] = new THREE.MeshLambertMaterial({
+                    map: texture, transparent: true, opacity: 0.9,
+                    side: THREE.DoubleSide, depthWrite: false,
+                    emissive: 0xff4400, emissiveIntensity: 0.5
+                });
+            } else if (type === 601 || type === 602 || type === 603 || type === 604 || type === 605 || type === 606 || type === 607 || type === 608 || type === 611 || type === 612 || type === 613 || type === 619 || type === 622) {
+                this.blockMaterials[type] = new THREE.MeshLambertMaterial({
+                    map: texture, transparent: true, alphaTest: 0.5,
+                    side: THREE.DoubleSide, color: 0xffffff
+                });
+            } else {
+                this.blockMaterials[type] = new THREE.MeshLambertMaterial({
+                    map: texture, transparent: false, side: THREE.FrontSide
+                });
+            }
+        }
+        
+        const waterCanvas = generateHDTexture(7);
+        const waterTexture = new THREE.CanvasTexture(waterCanvas);
+        waterTexture.magFilter = THREE.NearestFilter;
+        this.blockMaterials[7] = new THREE.MeshLambertMaterial({
+            map: waterTexture, transparent: true, opacity: 0.7,
+            side: THREE.DoubleSide, depthWrite: false
+        });
+    }
+    
+    getChunkKey(cx, cz) { return `${cx},${cz}`; }
+    
+    getBlock(x, y, z) {
+        if (y < 0 || y >= this.worldHeight) return BLOCK_TYPES.AIR;
+        const cx = Math.floor(x / this.chunkSize);
+        const cz = Math.floor(z / this.chunkSize);
+        const chunk = this.chunks.get(this.getChunkKey(cx, cz));
+        if (!chunk) return BLOCK_TYPES.AIR;
+        const lx = x - cx * this.chunkSize;
+        const lz = z - cz * this.chunkSize;
+        return chunk[lx][y][lz];
+    }
+    
+    setBlock(x, y, z, type) {
+        if (y < 0 || y >= this.worldHeight) return;
+        const cx = Math.floor(x / this.chunkSize);
+        const cz = Math.floor(z / this.chunkSize);
+        let chunk = this.chunks.get(this.getChunkKey(cx, cz));
+        if (!chunk) { this.generateChunk(cx, cz); chunk = this.chunks.get(this.getChunkKey(cx, cz)); }
+        const lx = x - cx * this.chunkSize;
+        const lz = z - cz * this.chunkSize;
+        chunk[lx][y][lz] = type;
+    }
+    
+    getBiomeAt(x, z) {
+        return this.biomeGen.getBiome(x, z);
+    }
+    
+    generateChunk(cx, cz) {
+        const key = this.getChunkKey(cx, cz);
+        if (this.chunks.has(key)) return;
+        
+        const chunk = [];
+        for (let x = 0; x < this.chunkSize; x++) {
+            chunk[x] = [];
+            for (let y = 0; y < this.worldHeight; y++) {
+                chunk[x][y] = [];
+                for (let z = 0; z < this.chunkSize; z++) {
+                    chunk[x][y][z] = BLOCK_TYPES.AIR;
+                }
+            }
+        }
+        
+        for (let x = 0; x < this.chunkSize; x++) {
+            for (let z = 0; z < this.chunkSize; z++) {
+                const worldX = cx * this.chunkSize + x;
+                const worldZ = cz * this.chunkSize + z;
+                const biome = this.getBiomeAt(worldX, worldZ);
+                const height = this.biomeGen.getHeight(worldX, worldZ);
+                const waterLevel = biome.waterLevel || this.defaultWaterLevel;
+                
+                const hasCaveEntrance = this.biomeGen.isCaveEntrance(worldX, worldZ, height);
+                const caveEntranceDepth = hasCaveEntrance ? this.biomeGen.getCaveEntranceDepth(worldX, worldZ) : 0;
+                
+                for (let y = 0; y <= height; y++) {
+                    if (this.biomeGen.isCave(worldX, y, worldZ) && y > 3) {
+                        chunk[x][y][z] = BLOCK_TYPES.AIR;
+                        continue;
+                    }
+                    
+                    if (hasCaveEntrance && y > height - caveEntranceDepth && y < height) {
+                        chunk[x][y][z] = BLOCK_TYPES.AIR;
+                        continue;
+                    }
+                    
+                    if (y === 0) {
+                        chunk[x][y][z] = BLOCK_TYPES.BEDROCK;
+                    } else if (y === height) {
+                        if (height < waterLevel) {
+                            chunk[x][y][z] = BLOCK_TYPES.SAND;
+                        } else if (biome.snowy) {
+                            chunk[x][y][z] = BLOCK_TYPES.SNOW;
+                        } else if (biome.id === 'desert' || biome.id === 'beach') {
+                            chunk[x][y][z] = BLOCK_TYPES.SAND;
+                        } else if (biome.id === 'badlands' || biome.id === 'eroded_badlands') {
+                            chunk[x][y][z] = BLOCK_TYPES.RED_SAND;
+                        } else if (biome.id === 'stony_shore' || biome.id === 'stony_peaks') {
+                            chunk[x][y][z] = BLOCK_TYPES.STONE;
+                        } else if (biome.id === 'jagged_peaks' || biome.id === 'frozen_peaks') {
+                            chunk[x][y][z] = BLOCK_TYPES.SNOW;
+                        } else if (biome.id === 'snowy_slopes' || biome.id === 'grove') {
+                            chunk[x][y][z] = BLOCK_TYPES.SNOW;
+                        } else if (biome.id === 'swamp') {
+                            chunk[x][y][z] = BLOCK_TYPES.DIRT;
+                        } else {
+                            chunk[x][y][z] = BLOCK_TYPES.GRASS;
+                        }
+                    } else if (y > height - 4) {
+                        if (biome.id === 'desert' || biome.id === 'beach') {
+                            chunk[x][y][z] = BLOCK_TYPES.SAND;
+                        } else if (biome.id === 'badlands' || biome.id === 'eroded_badlands') {
+                            chunk[x][y][z] = BLOCK_TYPES.RED_SAND;
+                        } else if (biome.id === 'jagged_peaks' || biome.id === 'frozen_peaks') {
+                            chunk[x][y][z] = BLOCK_TYPES.STONE;
+                        } else {
+                            chunk[x][y][z] = BLOCK_TYPES.DIRT;
+                        }
+                    } else {
+                        const stoneNoise = this.noise.noise2D(worldX * 0.05, worldZ * 0.05);
+                        if (stoneNoise > 0.3) chunk[x][y][z] = BLOCK_TYPES.GRANITE;
+                        else if (stoneNoise < -0.3) chunk[x][y][z] = BLOCK_TYPES.DIORITE;
+                        else if (Math.abs(stoneNoise) < 0.1) chunk[x][y][z] = BLOCK_TYPES.ANDESITE;
+                        else chunk[x][y][z] = BLOCK_TYPES.STONE;
+                        
+                        if (y < 10) {
+                            if (Math.random() < 0.4) chunk[x][y][z] = BLOCK_TYPES.DEEPSLATE;
+                        }
+                        
+                        if (y < 5 && Math.random() < 0.01) chunk[x][y][z] = BLOCK_TYPES.DIAMOND_ORE;
+                        else if (y < 10 && Math.random() < 0.02) chunk[x][y][z] = BLOCK_TYPES.GOLD_ORE;
+                        else if (y < 20 && Math.random() < 0.03) chunk[x][y][z] = BLOCK_TYPES.IRON_ORE;
+                        else if (y < 15 && Math.random() < 0.02) chunk[x][y][z] = BLOCK_TYPES.COPPER_ORE;
+                        else if (y < 25 && Math.random() < 0.04) chunk[x][y][z] = BLOCK_TYPES.COAL_ORE;
+                        else if (y < 20 && Math.random() < 0.01) chunk[x][y][z] = BLOCK_TYPES.REDSTONE_ORE;
+                        else if (y < 30 && Math.random() < 0.005) chunk[x][y][z] = BLOCK_TYPES.LAPIS_ORE;
+                        else if (y < 30 && Math.random() < 0.003) chunk[x][y][z] = BLOCK_TYPES.EMERALD_ORE;
+                    }
+                }
+                
+                if (height < waterLevel) {
+                    for (let y = height + 1; y <= waterLevel; y++) {
+                        if (!this.biomeGen.isCave(worldX, y, worldZ)) {
+                            chunk[x][y][z] = BLOCK_TYPES.WATER;
+                        }
+                    }
+                }
+                
+                if (biome.id === 'river' || biome.id === 'frozen_river') {
+                    for (let y = height; y <= waterLevel; y++) {
+                        if (chunk[x][y][z] === BLOCK_TYPES.AIR || chunk[x][y][z] === BLOCK_TYPES.GRASS) {
+                            chunk[x][y][z] = BLOCK_TYPES.WATER;
+                        }
+                    }
+                }
+                
+                if (chunk[x][height][z] === BLOCK_TYPES.GRASS && Math.random() < biome.treeChance) {
+                    this.generateTree(chunk, x, height + 1, z, biome.treeType);
+                }
+                
+                if (chunk[x][height][z] === BLOCK_TYPES.GRASS && Math.random() < (biome.flowerChance || 0)) {
+                    this.generateFlower(chunk, x, height + 1, z, biome);
+                }
+                
+                if (biome.id === 'desert' && Math.random() < 0.02) {
+                    this.generateCactus(chunk, x, height + 1, z);
+                }
+                
+                if (biome.id === 'bamboo_jungle' && Math.random() < 0.1) {
+                    this.generateBamboo(chunk, x, height + 1, z);
+                }
+            }
+        }
+        
+        // 生成结构
+        this.structures.tryGenerateStructure(this, chunk, cx, cz, cx * this.chunkSize, cz * this.chunkSize);
+        
+        this.chunks.set(key, chunk);
+    }
+    
+    generateFlower(chunk, x, y, z, biome) {
+        let flowerType;
+        
+        if (biome.id === 'flower_forest') {
+            const flowers = [500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511];
+            flowerType = flowers[Math.floor(Math.random() * flowers.length)];
+        } else if (biome.id === 'sunflower_plains') {
+            flowerType = 512;
+        } else if (biome.id === 'plains') {
+            const flowers = [500, 501, 509];
+            flowerType = flowers[Math.floor(Math.random() * flowers.length)];
+        } else if (biome.id === 'forest' || biome.id === 'birch_forest') {
+            const flowers = [500, 501, 502, 511];
+            flowerType = flowers[Math.floor(Math.random() * flowers.length)];
+        } else if (biome.id === 'jungle' || biome.id === 'sparse_jungle') {
+            const flowers = [500, 501, 502];
+            flowerType = flowers[Math.floor(Math.random() * flowers.length)];
+        } else if (biome.id === 'swamp') {
+            flowerType = 502;
+        } else if (biome.id === 'meadow') {
+            const flowers = [500, 501, 502, 503, 504, 509, 510, 511];
+            flowerType = flowers[Math.floor(Math.random() * flowers.length)];
+        } else if (biome.id === 'savanna' || biome.id === 'savanna_plateau') {
+            const flowers = [500, 501, 509];
+            flowerType = flowers[Math.floor(Math.random() * flowers.length)];
+        } else {
+            const flowers = [500, 501];
+            flowerType = flowers[Math.floor(Math.random() * flowers.length)];
+        }
+        
+        if (y < this.worldHeight) {
+            chunk[x][y][z] = flowerType;
+        }
+    }
+    
+    generateTree(chunk, x, y, z, treeType) {
+        const treeHeight = 4 + Math.floor(Math.random() * 3);
+        let woodType, leavesType;
+        
+        switch(treeType) {
+            case 'oak': woodType = BLOCK_TYPES.WOOD; leavesType = BLOCK_TYPES.LEAVES; break;
+            case 'birch': woodType = BLOCK_TYPES.BIRCH_LOG; leavesType = BLOCK_TYPES.BIRCH_LEAVES; break;
+            case 'birch_tall': woodType = BLOCK_TYPES.BIRCH_LOG; leavesType = BLOCK_TYPES.BIRCH_LEAVES; break;
+            case 'spruce': woodType = BLOCK_TYPES.SPRUCE_LOG; leavesType = BLOCK_TYPES.SPRUCE_LEAVES; break;
+            case 'spruce_tall': woodType = BLOCK_TYPES.SPRUCE_LOG; leavesType = BLOCK_TYPES.SPRUCE_LEAVES; break;
+            case 'jungle': woodType = BLOCK_TYPES.JUNGLE_LOG; leavesType = BLOCK_TYPES.JUNGLE_LEAVES; break;
+            case 'acacia': woodType = BLOCK_TYPES.ACACIA_LOG; leavesType = BLOCK_TYPES.ACACIA_LEAVES; break;
+            case 'dark_oak': woodType = BLOCK_TYPES.DARK_OAK_LOG; leavesType = BLOCK_TYPES.DARK_OAK_LEAVES; break;
+            case 'crimson': woodType = BLOCK_TYPES.CRIMSON_STEM; leavesType = BLOCK_TYPES.CRIMSON_NYLIUM; break;
+            case 'warped': woodType = BLOCK_TYPES.WARPED_STEM; leavesType = BLOCK_TYPES.WARPED_NYLIUM; break;
+            case 'swamp_oak': woodType = BLOCK_TYPES.WOOD; leavesType = BLOCK_TYPES.LEAVES; break;
+            case 'bamboo': woodType = BLOCK_TYPES.BAMBOO; leavesType = BLOCK_TYPES.LEAVES; break;
+            default: woodType = BLOCK_TYPES.WOOD; leavesType = BLOCK_TYPES.LEAVES;
+        }
+        
+        for (let i = 0; i < treeHeight; i++) {
+            if (y + i < this.worldHeight) chunk[x][y + i][z] = woodType;
+        }
+        
+        const topY = y + treeHeight;
+        for (let dx = -2; dx <= 2; dx++) {
+            for (let dz = -2; dz <= 2; dz++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    const lx = x + dx, ly = topY + dy, lz = z + dz;
+                    if (lx >= 0 && lx < this.chunkSize && lz >= 0 && lz < this.chunkSize && ly < this.worldHeight) {
+                        if (Math.abs(dx) + Math.abs(dz) + Math.abs(dy) <= 3 && chunk[lx][ly][lz] === BLOCK_TYPES.AIR) {
+                            chunk[lx][ly][lz] = leavesType;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    generateCactus(chunk, x, y, z) {
+        const height = 2 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < height; i++) {
+            if (y + i < this.worldHeight) chunk[x][y + i][z] = BLOCK_TYPES.CACTUS;
+        }
+    }
+    
+    generateBamboo(chunk, x, y, z) {
+        const height = 3 + Math.floor(Math.random() * 4);
+        for (let i = 0; i < height; i++) {
+            if (y + i < this.worldHeight) chunk[x][y + i][z] = BLOCK_TYPES.BAMBOO;
+        }
+    }
+    
+    buildMultiMaterialMesh(cx, cz) {
+        const key = this.getChunkKey(cx, cz);
+        const oldMesh = this.meshes.get(key);
+        if (oldMesh) {
+            this.scene.remove(oldMesh);
+            oldMesh.traverse(child => { if (child.geometry) child.geometry.dispose(); });
+        }
+        
+        const chunk = this.chunks.get(key);
+        if (!chunk) return;
+        
+        const geometries = {};
+        
+        for (let x = 0; x < this.chunkSize; x++) {
+            for (let y = 0; y < this.worldHeight; y++) {
+                for (let z = 0; z < this.chunkSize; z++) {
+                    const blockType = chunk[x][y][z];
+                    if (blockType === BLOCK_TYPES.AIR) continue;
+                    
+                    const worldX = cx * this.chunkSize + x;
+                    const worldZ = cz * this.chunkSize + z;
+                    
+                    const faces = [
+                        { dir: [1, 0, 0], corners: [[1,0,0],[1,1,0],[1,1,1],[1,0,1]], light: 0.8 },
+                        { dir: [-1, 0, 0], corners: [[0,0,1],[0,1,1],[0,1,0],[0,0,0]], light: 0.8 },
+                        { dir: [0, 1, 0], corners: [[0,1,1],[1,1,1],[1,1,0],[0,1,0]], light: 1.0 },
+                        { dir: [0, -1, 0], corners: [[0,0,0],[1,0,0],[1,0,1],[0,0,1]], light: 0.5 },
+                        { dir: [0, 0, 1], corners: [[1,0,1],[1,1,1],[0,1,1],[0,0,1]], light: 0.7 },
+                        { dir: [0, 0, -1], corners: [[0,0,0],[0,1,0],[1,1,0],[1,0,0]], light: 0.7 }
+                    ];
+                    
+                    for (const face of faces) {
+                        const nx = worldX + face.dir[0];
+                        const ny = y + face.dir[1];
+                        const nz = worldZ + face.dir[2];
+                        const neighbor = this.getBlock(nx, ny, nz);
+                        
+                        if (blockType === BLOCK_TYPES.GLASS || STAINED_GLASS_BLOCKS.has(blockType)) {
+                            // 玻璃不做面剔除
+                        } else {
+                            // 水的面剔除 - 修复跨区块水面分割问题
+                            if (blockType === BLOCK_TYPES.WATER) {
+                                if (neighbor === BLOCK_TYPES.WATER) continue;
+                                if (neighbor !== BLOCK_TYPES.AIR) continue;
+                            }
+                            
+                            // 花草植物的特殊渲染
+                            if (blockType >= 500 && blockType <= 519) {
+                                // 花草只渲染所有面（十字形）
+                            } else {
+                                if (!TRANSPARENT_BLOCKS.has(blockType) && !TRANSPARENT_BLOCKS.has(neighbor)) continue;
+                                if (blockType === BLOCK_TYPES.LEAVES && neighbor === BLOCK_TYPES.LEAVES) continue;
+                            }
+                        }
+                        
+                        if (!geometries[blockType]) {
+                            geometries[blockType] = { positions: [], normals: [], uvs: [], colors: [], indices: [], indexOffset: 0 };
+                        }
+                        
+                        const geo = geometries[blockType];
+                        const baseIndex = geo.indexOffset;
+                        
+                        for (const corner of face.corners) {
+                            geo.positions.push(worldX + corner[0], y + corner[1], worldZ + corner[2]);
+                            geo.normals.push(face.dir[0], face.dir[1], face.dir[2]);
+                            geo.colors.push(face.light, face.light, face.light);
+                        }
+                        
+                        geo.uvs.push(0, 0, 0, 1, 1, 1, 1, 0);
+                        geo.indices.push(baseIndex, baseIndex + 1, baseIndex + 2, baseIndex, baseIndex + 2, baseIndex + 3);
+                        geo.indexOffset += 4;
+                    }
+                }
+            }
+        }
+        
+        const group = new THREE.Group();
+        group.userData.chunkKey = key;
+        group.userData.isChunk = true;
+        
+        for (const type in geometries) {
+            const geo = geometries[type];
+            if (geo.positions.length === 0) continue;
+            
+            const bufferGeo = new THREE.BufferGeometry();
+            bufferGeo.setAttribute('position', new THREE.Float32BufferAttribute(geo.positions, 3));
+            bufferGeo.setAttribute('normal', new THREE.Float32BufferAttribute(geo.normals, 3));
+            bufferGeo.setAttribute('uv', new THREE.Float32BufferAttribute(geo.uvs, 2));
+            bufferGeo.setAttribute('color', new THREE.Float32BufferAttribute(geo.colors, 3));
+            bufferGeo.setIndex(geo.indices);
+            bufferGeo.computeBoundingSphere();
+            
+            const material = this.blockMaterials[type] || this.blockMaterials[3];
+            const mesh = new THREE.Mesh(bufferGeo, material);
+            mesh.userData.blockType = parseInt(type);
+            mesh.userData.isChunkMesh = true;
+            
+            const blockTypeNum = parseInt(type);
+            if (blockTypeNum === BLOCK_TYPES.WATER || blockTypeNum === BLOCK_TYPES.LAVA) mesh.renderOrder = 2;
+            else if (blockTypeNum === BLOCK_TYPES.GLASS || STAINED_GLASS_BLOCKS.has(blockTypeNum)) mesh.renderOrder = 1;
+            else mesh.renderOrder = 0;
+            
+            group.add(mesh);
+        }
+        
+        this.scene.add(group);
+        this.meshes.set(key, group);
+    }
+    
+    updateChunks(playerX, playerZ) {
+        const pcx = Math.floor(playerX / this.chunkSize);
+        const pcz = Math.floor(playerZ / this.chunkSize);
+        
+        const chunksToLoad = [];
+        for (let dx = -this.renderDistance; dx <= this.renderDistance; dx++) {
+            for (let dz = -this.renderDistance; dz <= this.renderDistance; dz++) {
+                const cx = pcx + dx, cz = pcz + dz;
+                const key = this.getChunkKey(cx, cz);
+                const distance = dx * dx + dz * dz;
+                
+                if (!this.chunks.has(key)) {
+                    chunksToLoad.push({ cx, cz, key, distance, type: 'generate' });
+                } else if (!this.meshes.has(key)) {
+                    chunksToLoad.push({ cx, cz, key, distance, type: 'build' });
+                }
+            }
+        }
+        
+        chunksToLoad.sort((a, b) => a.distance - b.distance);
+        
+        for (const chunk of chunksToLoad) {
+            if (!this.chunkQueue.find(c => c.key === chunk.key)) {
+                this.chunkQueue.push(chunk);
+            }
+        }
+        
+        this.processChunkQueue();
+        
+        for (const [key, mesh] of this.meshes) {
+            const [cx, cz] = key.split(',').map(Number);
+            const dx = Math.abs(cx - pcx), dz = Math.abs(cz - pcz);
+            if (dx > this.renderDistance + 1 || dz > this.renderDistance + 1) {
+                this.scene.remove(mesh);
+                mesh.traverse(child => { if (child.geometry) child.geometry.dispose(); });
+                this.meshes.delete(key);
+            }
+        }
+    }
+    
+    processChunkQueue() {
+        let processed = 0;
+        const skipped = [];
+        
+        while (this.chunkQueue.length > 0 && processed < this.maxChunksPerFrame) {
+            const chunk = this.chunkQueue.shift();
+            
+            if (chunk.type === 'generate') {
+                if (!this.chunks.has(chunk.key)) {
+                    this.generateChunk(chunk.cx, chunk.cz);
+                    processed++;
+                }
+            } else if (chunk.type === 'build') {
+                // 检查相邻区块是否已生成
+                let neighborsReady = true;
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dz = -1; dz <= 1; dz++) {
+                        if (dx === 0 && dz === 0) continue;
+                        if (!this.chunks.has(this.getChunkKey(chunk.cx + dx, chunk.cz + dz))) {
+                            neighborsReady = false;
+                            break;
+                        }
+                    }
+                    if (!neighborsReady) break;
+                }
+                
+                if (neighborsReady) {
+                    if (this.chunks.has(chunk.key) && !this.meshes.has(chunk.key)) {
+                        this.buildMultiMaterialMesh(chunk.cx, chunk.cz);
+                        processed++;
+                    }
+                } else {
+                    // 重新排队
+                    skipped.push(chunk);
+                }
+            }
+        }
+        
+        // 将跳过的区块重新加入队列
+        this.chunkQueue.push(...skipped);
+    }
+    
+    rebuildChunk(x, z) {
+        const cx = Math.floor(x / this.chunkSize);
+        const cz = Math.floor(z / this.chunkSize);
+        this.buildMultiMaterialMesh(cx, cz);
+        
+        const lx = x - cx * this.chunkSize;
+        const lz = z - cz * this.chunkSize;
+        if (lx === 0) this.buildMultiMaterialMesh(cx - 1, cz);
+        if (lx === this.chunkSize - 1) this.buildMultiMaterialMesh(cx + 1, cz);
+        if (lz === 0) this.buildMultiMaterialMesh(cx, cz - 1);
+        if (lz === this.chunkSize - 1) this.buildMultiMaterialMesh(cx, cz + 1);
+    }
+    
+    raycast(origin, direction, maxDistance = 8) {
+        const step = 0.05;
+        let pos = origin.clone();
+        for (let d = 0; d < maxDistance; d += step) {
+            pos.add(direction.clone().multiplyScalar(step));
+            const x = Math.floor(pos.x), y = Math.floor(pos.y), z = Math.floor(pos.z);
+            const block = this.getBlock(x, y, z);
+            if (block !== BLOCK_TYPES.AIR && block !== BLOCK_TYPES.WATER && block !== BLOCK_TYPES.LAVA) {
+                return { block, x, y, z, normal: this.getRaycastNormal(pos, x, y, z) };
+            }
+        }
+        return null;
+    }
+    
+    getRaycastNormal(pos, x, y, z) {
+        const dx = pos.x - (x + 0.5), dy = pos.y - (y + 0.5), dz = pos.z - (z + 0.5);
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > Math.abs(dz)) return new THREE.Vector3(Math.sign(dx), 0, 0);
+        else if (Math.abs(dy) > Math.abs(dz)) return new THREE.Vector3(0, Math.sign(dy), 0);
+        else return new THREE.Vector3(0, 0, Math.sign(dz));
+    }
+    
+    save() {
+        const data = {
+            seed: this.seed, chunks: {},
+            playerData: window.game.player ? {
+                x: window.game.player.position.x, y: window.game.player.position.y,
+                z: window.game.player.position.z, rx: window.game.camera.rotation.x,
+                ry: window.game.camera.rotation.y
+            } : null
+        };
+        for (const [key, chunk] of this.chunks) data.chunks[key] = chunk;
+        localStorage.setItem('minecraft_save', JSON.stringify(data));
+        return true;
+    }
+    
+    load() {
+        const saved = localStorage.getItem('minecraft_save');
+        if (!saved) return false;
+        try {
+            const data = JSON.parse(saved);
+            this.seed = data.seed;
+            this.noise = new NoiseGenerator(this.seed);
+            this.biomeGen = new BiomeGenerator(this.seed);
+            this.structures = new StructureGenerator(this.seed);
+            this.chunks.clear();
+            for (const [key, chunk] of Object.entries(data.chunks)) this.chunks.set(key, chunk);
+            if (data.playerData && window.game.player) {
+                window.game.player.position.set(data.playerData.x, data.playerData.y, data.playerData.z);
+                window.game.camera.rotation.x = data.playerData.rx;
+                window.game.camera.rotation.y = data.playerData.ry;
+            }
+            return true;
+        } catch (e) { console.error('加载失败:', e); return false; }
+    }
+}
+
+// ========== 粒子系统 ==========
+class ParticleSystem {
+    constructor(scene) { this.scene = scene; this.particles = []; }
+    
+    emit(position, color, count = 10, velocity = null) {
+        for (let i = 0; i < count; i++) {
+            const geo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+            const mat = new THREE.MeshBasicMaterial({ color, transparent: true });
+            const particle = new THREE.Mesh(geo, mat);
+            particle.position.copy(position);
+            const vel = velocity || new THREE.Vector3((Math.random()-0.5)*3, Math.random()*3, (Math.random()-0.5)*3);
+            this.scene.add(particle);
+            this.particles.push({ mesh: particle, velocity: vel, life: 1.0, gravity: -9.8 });
+        }
+    }
+    
+    update(dt) {
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.velocity.y += p.gravity * dt;
+            p.mesh.position.x += p.velocity.x * dt;
+            p.mesh.position.y += p.velocity.y * dt;
+            p.mesh.position.z += p.velocity.z * dt;
+            p.mesh.rotation.x += dt * 5;
+            p.mesh.rotation.y += dt * 5;
+            p.life -= dt * 1.5;
+            p.mesh.material.opacity = p.life;
+            if (p.life <= 0) {
+                this.scene.remove(p.mesh);
+                p.mesh.geometry.dispose();
+                p.mesh.material.dispose();
+                this.particles.splice(i, 1);
+            }
+        }
+    }
+}
+
+// ========== 玩家控制器 ==========
+class PlayerController {
+    constructor(camera, world) {
+        this.camera = camera;
+        this.world = world;
+        this.position = new THREE.Vector3(0, 40, 0);
+        this.velocity = new THREE.Vector3();
+        this.rotation = { x: 0, y: 0 };
+        this.speed = 5;
+        this.flySpeed = 10;
+        this.jumpForce = 8;
+        this.gravity = -20;
+        this.onGround = false;
+        this.flying = false;
+        this.width = 0.6;
+        this.height = 1.8;
+        this.eyeHeight = 1.6;
+        this.keys = {};
+        this.isUnderwater = false;
+        this.setupControls();
+    }
+    
+    setupControls() {
+        document.addEventListener('keydown', (e) => {
+            this.keys[e.code] = true;
+            if (e.code === 'KeyF') {
+                this.flying = !this.flying;
+                this.velocity.y = 0;
+                showToast(this.flying ? '飞行模式开启' : '飞行模式关闭');
+            }
+        });
+        document.addEventListener('keyup', (e) => { this.keys[e.code] = false; });
+    }
+    
+    update(dt) {
+        const forward = new THREE.Vector3(0, 0, -1);
+        forward.applyEuler(new THREE.Euler(0, this.rotation.y, 0, 'YXZ'));
+        const right = new THREE.Vector3(1, 0, 0);
+        right.applyEuler(new THREE.Euler(0, this.rotation.y, 0, 'YXZ'));
+        
+        const moveDir = new THREE.Vector3();
+        if (this.keys['KeyW']) moveDir.add(forward);
+        if (this.keys['KeyS']) moveDir.sub(forward);
+        if (this.keys['KeyA']) moveDir.sub(right);
+        if (this.keys['KeyD']) moveDir.add(right);
+        
+        if (moveDir.length() > 0) {
+            moveDir.normalize();
+            const speed = this.flying ? this.flySpeed : this.speed;
+            this.velocity.x = moveDir.x * speed;
+            this.velocity.z = moveDir.z * speed;
+        } else {
+            this.velocity.x *= 0.8;
+            this.velocity.z *= 0.8;
+        }
+        
+        if (this.flying) {
+            if (this.keys['Space']) this.velocity.y = this.flySpeed;
+            else if (this.keys['ShiftLeft']) this.velocity.y = -this.flySpeed;
+            else this.velocity.y *= 0.8;
+        } else {
+            if (this.keys['Space'] && this.onGround) {
+                this.velocity.y = this.jumpForce;
+                this.onGround = false;
+            }
+            this.velocity.y += this.gravity * dt;
+        }
+        
+        this.moveWithCollision(dt);
+        
+        this.camera.position.set(this.position.x, this.position.y + this.eyeHeight, this.position.z);
+        this.camera.rotation.order = 'YXZ';
+        this.camera.rotation.y = this.rotation.y;
+        this.camera.rotation.x = this.rotation.x;
+        
+        this.checkUnderwater();
+    }
+    
+    checkUnderwater() {
+        const eyePos = new THREE.Vector3(this.position.x, this.position.y + this.eyeHeight, this.position.z);
+        const blockAtEye = this.world.getBlock(Math.floor(eyePos.x), Math.floor(eyePos.y), Math.floor(eyePos.z));
+        this.isUnderwater = (blockAtEye === BLOCK_TYPES.WATER);
+        
+        const overlay = document.getElementById('underwater-overlay');
+        if (overlay) {
+            overlay.classList.toggle('active', this.isUnderwater);
+        }
+    }
+    
+    moveWithCollision(dt) {
+        const newPos = this.position.clone();
+        newPos.x += this.velocity.x * dt;
+        if (this.checkCollision(newPos)) { newPos.x = this.position.x; this.velocity.x = 0; }
+        newPos.z += this.velocity.z * dt;
+        if (this.checkCollision(newPos)) { newPos.z = this.position.z; this.velocity.z = 0; }
+        newPos.y += this.velocity.y * dt;
+        if (this.checkCollision(newPos)) {
+            if (this.velocity.y < 0) this.onGround = true;
+            newPos.y = this.position.y;
+            this.velocity.y = 0;
+        } else { this.onGround = false; }
+        this.position.copy(newPos);
+        if (this.position.y < -10) { this.position.set(0, 40, 0); this.velocity.set(0, 0, 0); }
+    }
+    
+    checkCollision(pos) {
+        const minX = Math.floor(pos.x - this.width / 2);
+        const maxX = Math.floor(pos.x + this.width / 2);
+        const minY = Math.floor(pos.y);
+        const maxY = Math.floor(pos.y + this.height);
+        const minZ = Math.floor(pos.z - this.width / 2);
+        const maxZ = Math.floor(pos.z + this.width / 2);
+        for (let x = minX; x <= maxX; x++)
+            for (let y = minY; y <= maxY; y++)
+                for (let z = minZ; z <= maxZ; z++) {
+                    const block = this.world.getBlock(x, y, z);
+                    if (block !== BLOCK_TYPES.AIR && block !== BLOCK_TYPES.WATER) return true;
+                }
+        return false;
+    }
+}
+
+// ========== 游戏主类 ==========
+class Game {
+    constructor() {
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x87CEEB);
+        this.scene.fog = new THREE.Fog(0x87CEEB, 30, 100);
+        
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(this.renderer.domElement);
+        
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        this.scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(50, 100, 30);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.camera.near = 0.5;
+        directionalLight.shadow.camera.far = 200;
+        directionalLight.shadow.camera.left = -50;
+        directionalLight.shadow.camera.right = 50;
+        directionalLight.shadow.camera.top = 50;
+        directionalLight.shadow.camera.bottom = -50;
+        this.scene.add(directionalLight);
+        
+        this.createSky();
+        this.world = new World(this.scene, Math.floor(Math.random() * 100000));
+        this.player = new PlayerController(this.camera, this.world);
+        this.particles = new ParticleSystem(this.scene);
+        
+        this.selectedBlock = 0;
+        this.hotbar = [1, 2, 3, 4, 5, 6, 13, 14, 15];
+        this.isPaused = false;
+        this.isInventoryOpen = false;
+        this.mouseLocked = false;
+        this.frameCount = 0;
+        this.lastFPSUpdate = 0;
+        this.fps = 60;
+        
+        this.setupControls();
+        this.setupHotbar();
+        this.setupInventory();
+        this.setupResize();
+        window.game = this;
+    }
+    
+    createSky() {
+        const skyGeo = new THREE.SphereGeometry(500, 32, 32);
+        const skyMat = new THREE.ShaderMaterial({
+            uniforms: {
+                topColor: { value: new THREE.Color(0x0077ff) },
+                bottomColor: { value: new THREE.Color(0xffffff) },
+                offset: { value: 33 }, exponent: { value: 0.6 }
+            },
+            vertexShader: `varying vec3 vWorldPosition; void main() { vec4 worldPosition = modelMatrix * vec4(position, 1.0); vWorldPosition = worldPosition.xyz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+            fragmentShader: `uniform vec3 topColor; uniform vec3 bottomColor; uniform float offset; uniform float exponent; varying vec3 vWorldPosition; void main() { float h = normalize(vWorldPosition + offset).y; gl_FragColor = vec4(mix(bottomColor, topColor, max(pow(max(h, 0.0), exponent), 0.0)), 1.0); }`,
+            side: THREE.BackSide
+        });
+        this.sky = new THREE.Mesh(skyGeo, skyMat);
+        this.scene.add(this.sky);
+        this.createClouds();
+    }
+    
+    createClouds() {
+        const cloudGeo = new THREE.PlaneGeometry(200, 200);
+        const cloudCanvas = document.createElement('canvas');
+        cloudCanvas.width = 256; cloudCanvas.height = 256;
+        const ctx = cloudCanvas.getContext('2d');
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        for (let i = 0; i < 20; i++) {
+            const x = Math.random() * 256, y = Math.random() * 256, r = 20 + Math.random() * 40;
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+        }
+        const cloudTex = new THREE.CanvasTexture(cloudCanvas);
+        const cloudMat = new THREE.MeshBasicMaterial({ map: cloudTex, transparent: true, opacity: 0.6, depthWrite: false });
+        for (let i = 0; i < 5; i++) {
+            const cloud = new THREE.Mesh(cloudGeo, cloudMat);
+            cloud.position.set((Math.random()-0.5)*200, 80+Math.random()*20, (Math.random()-0.5)*200);
+            cloud.rotation.x = -Math.PI / 2;
+            this.scene.add(cloud);
+        }
+    }
+    
+    setupControls() {
+        this.renderer.domElement.addEventListener('click', () => {
+            if (!this.isPaused && !this.isInventoryOpen) this.renderer.domElement.requestPointerLock();
+        });
+        document.addEventListener('pointerlockchange', () => {
+            this.mouseLocked = document.pointerLockElement === this.renderer.domElement;
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (this.mouseLocked && !this.isPaused && !this.isInventoryOpen) {
+                this.player.rotation.y -= e.movementX * 0.002;
+                this.player.rotation.x -= e.movementY * 0.002;
+                this.player.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.player.rotation.x));
+            }
+        });
+        document.addEventListener('mousedown', (e) => {
+            if (!this.mouseLocked || this.isPaused || this.isInventoryOpen) return;
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+            const hit = this.world.raycast(this.camera.position, raycaster.ray.direction, 8);
+            if (hit) {
+                if (e.button === 0) this.breakBlock(hit.x, hit.y, hit.z, hit.block);
+                else if (e.button === 2) this.placeBlock(hit.x + hit.normal.x, hit.y + hit.normal.y, hit.z + hit.normal.z);
+            }
+        });
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+        document.addEventListener('wheel', (e) => {
+            if (this.isPaused || this.isInventoryOpen) return;
+            if (e.deltaY > 0) this.selectedBlock = (this.selectedBlock + 1) % this.hotbar.length;
+            else this.selectedBlock = (this.selectedBlock - 1 + this.hotbar.length) % this.hotbar.length;
+            this.updateHotbar();
+        });
+        document.addEventListener('keydown', (e) => {
+            const num = parseInt(e.key);
+            if (num >= 1 && num <= 9) { this.selectedBlock = num - 1; this.updateHotbar(); }
+            if (e.code === 'Escape') { if (this.isInventoryOpen) this.toggleInventory(); else this.togglePause(); }
+            if (e.code === 'KeyE') this.toggleInventory();
+        });
+    }
+    
+    breakBlock(x, y, z, blockType) {
+        this.world.setBlock(x, y, z, BLOCK_TYPES.AIR);
+        this.world.rebuildChunk(x, z);
+        const colors = {1:0x5a8a3a,2:0x8b6f47,3:0x808080,4:0x6b4f2a,5:0x3a7a2a,6:0xe0d090,8:0x333333,9:0x1a1a1a,10:0xd0a080,11:0xffd700,12:0x50f0ff,13:0xb08040,14:0xa0c0d0,15:0xa04030,16:0xf0f0f0};
+        const color = colors[blockType] || 0x808080;
+        this.particles.emit(new THREE.Vector3(x+0.5, y+0.5, z+0.5), color, 15);
+        this.showBlockInfo(BLOCK_NAMES[blockType] || '方块');
+    }
+    
+    placeBlock(x, y, z) {
+        const playerBox = {
+            minX: this.player.position.x - this.player.width/2, maxX: this.player.position.x + this.player.width/2,
+            minY: this.player.position.y, maxY: this.player.position.y + this.player.height,
+            minZ: this.player.position.z - this.player.width/2, maxZ: this.player.position.z + this.player.width/2
+        };
+        if (x+1 > playerBox.minX && x < playerBox.maxX && y+1 > playerBox.minY && y < playerBox.maxY && z+1 > playerBox.minZ && z < playerBox.maxZ) return;
+        const blockType = this.hotbar[this.selectedBlock];
+        this.world.setBlock(x, y, z, blockType);
+        this.world.rebuildChunk(x, z);
+        this.showBlockInfo(`放置: ${BLOCK_NAMES[blockType]}`);
+    }
+    
+    showBlockInfo(text) {
+        const el = document.getElementById('block-info');
+        el.textContent = text;
+        el.style.opacity = '1';
+        clearTimeout(this.blockInfoTimeout);
+        this.blockInfoTimeout = setTimeout(() => { el.style.opacity = '0'; }, 1500);
+    }
+    
+    setupHotbar() {
+        const hotbar = document.getElementById('hotbar');
+        hotbar.innerHTML = '';
+        for (let i = 0; i < this.hotbar.length; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'hotbar-slot' + (i === this.selectedBlock ? ' active' : '');
+            slot.innerHTML = `<span class="slot-number">${i + 1}</span>`;
+            const canvas = generateTexture(this.hotbar[i], 32);
+            slot.appendChild(canvas);
+            slot.addEventListener('click', () => { this.selectedBlock = i; this.updateHotbar(); });
+            hotbar.appendChild(slot);
+        }
+    }
+    
+    updateHotbar() {
+        const slots = document.querySelectorAll('.hotbar-slot');
+        slots.forEach((slot, i) => slot.classList.toggle('active', i === this.selectedBlock));
+        document.getElementById('current-slot').textContent = this.selectedBlock + 1;
+    }
+    
+    setupInventory() {
+        const container = document.getElementById('inventory-container');
+        container.innerHTML = '';
+        const searchBox = document.getElementById('inventory-search');
+        searchBox.oninput = () => this.filterInventory(searchBox.value);
+        
+        for (const [categoryName, blockIds] of Object.entries(BLOCK_CATEGORIES)) {
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'inventory-category';
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'category-title';
+            titleDiv.textContent = categoryName;
+            categoryDiv.appendChild(titleDiv);
+            
+            const grid = document.createElement('div');
+            grid.className = 'inventory-grid';
+            
+            for (const blockId of blockIds) {
+                const slot = document.createElement('div');
+                slot.className = 'inventory-slot';
+                slot.dataset.blockType = blockId;
+                slot.dataset.blockName = BLOCK_NAMES[blockId] || '';
+                const canvas = generateTexture(blockId, 48);
+                slot.appendChild(canvas);
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'block-name';
+                nameDiv.textContent = BLOCK_NAMES[blockId] || '未知';
+                slot.appendChild(nameDiv);
+                slot.addEventListener('click', () => {
+                    this.hotbar[this.selectedBlock] = blockId;
+                    this.setupHotbar();
+                    this.updateHotbar();
+                    showToast(`已将 ${BLOCK_NAMES[blockId]} 添加到快捷栏第 ${this.selectedBlock + 1} 格`);
+                });
+                grid.appendChild(slot);
+            }
+            categoryDiv.appendChild(grid);
+            container.appendChild(categoryDiv);
+        }
+    }
+    
+    filterInventory(searchText) {
+        const categories = document.querySelectorAll('.inventory-category');
+        searchText = searchText.toLowerCase();
+        categories.forEach(category => {
+            let hasVisible = false;
+            const slots = category.querySelectorAll('.inventory-slot');
+            slots.forEach(slot => {
+                const blockName = (slot.dataset.blockName || '').toLowerCase();
+                if (blockName.includes(searchText)) { slot.style.display = 'flex'; hasVisible = true; }
+                else slot.style.display = 'none';
+            });
+            category.style.display = hasVisible ? 'block' : 'none';
+        });
+    }
+    
+    toggleInventory() {
+        this.isInventoryOpen = !this.isInventoryOpen;
+        document.getElementById('inventory').classList.toggle('show', this.isInventoryOpen);
+        if (this.isInventoryOpen) { document.exitPointerLock(); this.updateHotbar(); }
+        else if (!this.isPaused) this.renderer.domElement.requestPointerLock();
+    }
+    
+    togglePause() {
+        this.isPaused = !this.isPaused;
+        document.getElementById('menu').classList.toggle('hidden', !this.isPaused);
+        if (this.isPaused) document.exitPointerLock();
+    }
+    
+    setupResize() {
+        window.addEventListener('resize', () => {
+            this.camera.aspect = window.innerWidth / window.innerHeight;
+            this.camera.updateProjectionMatrix();
+            this.renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    }
+    
+    update(dt) {
+        if (!this.isPaused && !this.isInventoryOpen) {
+            this.player.update(dt);
+            this.world.updateChunks(this.player.position.x, this.player.position.z);
+            this.particles.update(dt);
+            
+            document.getElementById('pos-info').textContent = `${Math.floor(this.player.position.x)}, ${Math.floor(this.player.position.y)}, ${Math.floor(this.player.position.z)}`;
+            document.getElementById('chunk-info').textContent = this.world.meshes.size;
+            
+            const biome = this.world.getBiomeAt(Math.floor(this.player.position.x), Math.floor(this.player.position.z));
+            document.getElementById('biome-info').textContent = biome.name;
+            
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+            const hit = this.world.raycast(this.camera.position, raycaster.ray.direction, 8);
+            if (hit) document.getElementById('block-info-text').textContent = BLOCK_NAMES[hit.block] || '未知';
+            else document.getElementById('block-info-text').textContent = '空气';
+        }
+        
+        this.frameCount++;
+        const now = performance.now();
+        if (now - this.lastFPSUpdate > 500) {
+            this.fps = Math.round(this.frameCount * 1000 / (now - this.lastFPSUpdate));
+            document.getElementById('fps-info').textContent = this.fps;
+            this.frameCount = 0;
+            this.lastFPSUpdate = now;
+        }
+    }
+    
+    render() { this.renderer.render(this.scene, this.camera); }
+    
+    start() {
+        let lastTime = performance.now();
+        const loop = () => {
+            const now = performance.now();
+            const dt = Math.min((now - lastTime) / 1000, 0.1);
+            lastTime = now;
+            this.update(dt);
+            this.render();
+            requestAnimationFrame(loop);
+        };
+        loop();
+    }
+}
+
+function showToast(text) {
+    const toast = document.getElementById('toast');
+    toast.textContent = text;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function updateLoading(percent, text) {
+    document.getElementById('loading-fill').style.width = percent + '%';
+    document.getElementById('loading-text').textContent = text;
+}
+
+async function init() {
+    updateLoading(10, '正在加载引擎...');
+    await new Promise(r => setTimeout(r, 200));
+    updateLoading(30, '正在生成200+方块纹理...');
+    await new Promise(r => setTimeout(r, 500));
+    updateLoading(50, '正在创建世界和生物群系...');
+    const game = new Game();
+    await new Promise(r => setTimeout(r, 300));
+    updateLoading(70, '正在生成地形...');
+    game.world.updateChunks(0, 0);
+    await new Promise(r => setTimeout(r, 300));
+    updateLoading(90, '正在初始化玩家...');
+    let spawnY = 40;
+    for (let y = 79; y > 0; y--) {
+        if (game.world.getBlock(0, y, 0) !== BLOCK_TYPES.AIR) { spawnY = y + 2; break; }
+    }
+    game.player.position.set(0.5, spawnY, 0.5);
+    await new Promise(r => setTimeout(r, 200));
+    updateLoading(100, '完成!');
+    await new Promise(r => setTimeout(r, 300));
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('hud').style.display = 'block';
+    game.start();
+    
+    document.getElementById('btn-continue').addEventListener('click', () => game.togglePause());
+    document.getElementById('btn-new').addEventListener('click', () => {
+        if (confirm('确定要创建新世界吗？当前世界将丢失。')) { localStorage.removeItem('minecraft_save'); location.reload(); }
+    });
+    document.getElementById('btn-save').addEventListener('click', () => {
+        if (game.world.save()) showToast('世界已保存');
+        else showToast('保存失败');
+    });
+    setInterval(() => { if (!game.isPaused && !game.isInventoryOpen) game.world.save(); }, 30000);
+    showToast('欢迎来到我的世界！200+方块 50+生物群系 | 按E打开方块选择');
+}
+
+init();
+</script>
+</body>
+</html>

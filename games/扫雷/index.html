@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLAYMINE · 3D扫雷</title>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  :root {
+    --bg-top: #FFE0B2;
+    --bg-mid: #FFAB91;
+    --bg-bot: #FFCCBC;
+    --accent: #E63946;
+    --accent-2: #FFB300;
+    --ink: #3E2723;
+    --paper: #FFF8E1;
+    --shadow: rgba(62, 39, 35, 0.25);
+  }
+  html,
+  body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(170deg, var(--bg-top) 0%, var(--bg-mid) 60%, var(--bg-bot) 100%);
+    color: var(--ink);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .brand {
+    position: fixed;
+    top: 26px;
+    left: 30px;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .brand h1 {
+    font-family: 'Bungee', cursive;
+    font-size: 40px;
+    color: var(--ink);
+    line-height: 0.88;
+    text-shadow: 3px 3px 0 var(--paper), 6px 6px 0 var(--accent), 9px 9px 16px var(--shadow);
+    letter-spacing: 1px;
+  }
+  .brand p {
+    font-size: 11px;
+    font-weight: 900;
+    color: var(--ink);
+    opacity: 0.55;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 10px;
+    margin-left: 2px;
+  }
+
+  .hud {
+    position: fixed;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .hud.top {
+    top: 28px;
+    right: 28px;
+    display: flex;
+    gap: 14px;
+  }
+  .stat {
+    background: var(--paper);
+    padding: 12px 20px;
+    border-radius: 18px;
+    border: 3px solid var(--ink);
+    box-shadow: 0 5px 0 var(--ink), 0 10px 20px var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 900;
+    font-size: 22px;
+    min-width: 112px;
+    font-family: 'Bungee', cursive;
+  }
+  .stat svg {
+    width: 22px;
+    height: 22px;
+  }
+  .stat.mines {
+    color: var(--accent);
+  }
+  .stat.time {
+    color: #5D4037;
+  }
+
+  .panel {
+    position: fixed;
+    bottom: 28px;
+    left: 28px;
+    background: var(--paper);
+    padding: 20px 24px;
+    border-radius: 22px;
+    border: 3px solid var(--ink);
+    box-shadow: 0 6px 0 var(--ink), 0 12px 24px var(--shadow);
+    pointer-events: auto;
+    z-index: 10;
+    max-width: 280px;
+  }
+  .panel h2 {
+    font-family: 'Bungee', cursive;
+    font-size: 16px;
+    margin-bottom: 12px;
+    color: var(--ink);
+    letter-spacing: 1px;
+  }
+  .panel p {
+    font-size: 13px;
+    line-height: 1.85;
+    font-weight: 700;
+    color: #5D4037;
+  }
+  .panel kbd {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 900;
+    font-family: 'Nunito', sans-serif;
+    margin-right: 6px;
+    box-shadow: 0 2px 0 #5D4037;
+    display: inline-block;
+    min-width: 50px;
+    text-align: center;
+  }
+
+  .actions {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: auto;
+    z-index: 10;
+  }
+  .btn {
+    background: var(--accent);
+    color: var(--paper);
+    border: 3px solid var(--ink);
+    padding: 14px 30px;
+    font-family: 'Bungee', cursive;
+    font-size: 16px;
+    border-radius: 18px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 var(--ink);
+    transition: all 0.12s ease;
+    letter-spacing: 1px;
+  }
+  .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 0 var(--ink);
+  }
+  .btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 3px 0 var(--ink);
+  }
+  .btn.green {
+    background: #7CB342;
+  }
+
+  .modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(62, 39, 35, 0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .modal.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .modal-card {
+    background: var(--paper);
+    border: 4px solid var(--ink);
+    border-radius: 32px;
+    padding: 44px 56px;
+    text-align: center;
+    box-shadow: 0 12px 0 var(--ink), 0 24px 50px rgba(0, 0, 0, 0.4);
+    transform: scale(0.6) rotate(-8deg);
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 90vw;
+  }
+  .modal.show .modal-card {
+    transform: scale(1) rotate(0deg);
+  }
+  .modal-card h1 {
+    font-family: 'Bungee', cursive;
+    font-size: 68px;
+    margin-bottom: 14px;
+    line-height: 1;
+    letter-spacing: 2px;
+  }
+  .modal-card.lose h1 {
+    color: var(--accent);
+    text-shadow: 4px 4px 0 var(--ink);
+  }
+  .modal-card.win h1 {
+    color: var(--accent-2);
+    text-shadow: 4px 4px 0 var(--ink);
+  }
+  .modal-card p {
+    font-size: 18px;
+    margin-bottom: 28px;
+    color: #5D4037;
+    font-weight: 700;
+  }
+
+  .loading {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(170deg, var(--bg-top) 0%, var(--bg-mid) 60%, var(--bg-bot) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: opacity 0.6s ease;
+  }
+  .loading.hide {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .loader {
+    text-align: center;
+  }
+  .loader h2 {
+    font-family: 'Bungee', cursive;
+    font-size: 60px;
+    color: var(--ink);
+    text-shadow: 4px 4px 0 var(--accent);
+    animation: bounce 0.6s ease infinite alternate;
+  }
+  .loader p {
+    margin-top: 14px;
+    letter-spacing: 4px;
+    font-weight: 900;
+    color: var(--ink);
+    opacity: 0.6;
+    font-size: 12px;
+  }
+  @keyframes bounce {
+    from {
+      transform: translateY(0) rotate(-2deg);
+    }
+    to {
+      transform: translateY(-14px) rotate(2deg);
+    }
+  }
+
+  .toast {
+    position: fixed;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px) scale(0.9);
+    background: var(--ink);
+    color: var(--paper);
+    padding: 10px 24px;
+    border-radius: 20px;
+    font-weight: 900;
+    font-size: 13px;
+    letter-spacing: 2px;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 50;
+    pointer-events: none;
+    border: 2px solid var(--paper);
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+
+  @media (max-width: 720px) {
+    .brand h1 {
+      font-size: 28px;
+    }
+    .brand p {
+      font-size: 9px;
+    }
+    .hud.top {
+      top: 14px;
+      right: 14px;
+      gap: 8px;
+    }
+    .stat {
+      font-size: 16px;
+      padding: 8px 14px;
+      min-width: 86px;
+    }
+    .panel {
+      bottom: 14px;
+      left: 14px;
+      padding: 14px 16px;
+      max-width: 220px;
+    }
+    .panel p {
+      font-size: 11px;
+    }
+    .panel kbd {
+      min-width: 40px;
+      padding: 2px 6px;
+    }
+    .actions {
+      bottom: 14px;
+      right: 14px;
+    }
+    .btn {
+      padding: 10px 20px;
+      font-size: 13px;
+    }
+    .modal-card {
+      padding: 32px 36px;
+    }
+    .modal-card h1 {
+      font-size: 46px;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="loading" id="loading">
+    <div class="loader">
+      <h2>CLAYMINE</h2>
+      <p>LOADING...</p>
+    </div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <div class="brand">
+    <h1>CLAY<br>MINE</h1>
+    <p>clay · poly · sweeper</p>
+  </div>
+
+  <div class="hud top">
+    <div class="stat mines">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" /></svg>
+      <span id="mineCount">15</span>
+    </div>
+    <div class="stat time">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+      <span id="timer">000</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>HOW TO PLAY</h2>
+    <p>
+      <kbd>LEFT</kbd>挖开方块<br>
+      <kbd>RIGHT</kbd>插旗 / 取消<br>
+      <kbd>DRAG</kbd>旋转视角<br>
+      <kbd>WHEEL</kbd>缩放距离
+    </p>
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="resetBtn">NEW GAME</button>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="modal-card" id="modalCard">
+      <h1 id="modalTitle">BOOM!</h1>
+      <p id="modalText">你踩到地雷了！</p>
+      <button class="btn green" id="modalBtn">RETRY</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // ========== 配置 ==========
+    const CONFIG = {
+      cols: 10,
+      rows: 10,
+      mines: 15,
+      cellSize: 1.0,
+      cellHeight: 0.55,
+    };
+
+    // 关键 Y 坐标常量
+    const GRASS_TOP_Y = 0.12; // 草地顶面（即挖开后的坑底）
+    const CELL_TOP_Y = 0.67; // 方块顶面
+
+    // ========== 游戏状态 ==========
+    const game = {
+      board: [],
+      cells: [],
+      firstClick: true,
+      gameOver: false,
+      win: false,
+      flagsPlaced: 0,
+      cellsRevealed: 0,
+      startTime: 0,
+      timerInterval: null,
+    };
+
+    // ========== Three.js 场景 ==========
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0xFFAB91, 18, 42);
+
+    const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+    camera.position.set(0, 11.5, 10.5);
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas: document.getElementById('canvas'),
+      antialias: true,
+      alpha: true,
+    });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+
+    // 光照
+    scene.add(new THREE.HemisphereLight(0xFFE0B2, 0x5D4037, 0.6));
+    const sun = new THREE.DirectionalLight(0xFFEFC0, 1.5);
+    sun.position.set(6, 14, 8);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.left = -10;
+    sun.shadow.camera.right = 10;
+    sun.shadow.camera.top = 10;
+    sun.shadow.camera.bottom = -10;
+    sun.shadow.camera.near = 0.5;
+    sun.shadow.camera.far = 50;
+    sun.shadow.bias = -0.0005;
+    sun.shadow.radius = 4;
+    scene.add(sun);
+
+    const fill = new THREE.DirectionalLight(0xFFCCBC, 0.35);
+    fill.position.set(-5, 4, -3);
+    scene.add(fill);
+
+    // 控制器
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.minPolarAngle = 0.2;
+    controls.maxPolarAngle = Math.PI * 0.46;
+    controls.minDistance = 8;
+    controls.maxDistance = 22;
+    controls.enablePan = false;
+    controls.target.set(0, 0, 0);
+    controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: null,
+    };
+
+    // ========== 粘土材质 ==========
+    function clay(color) {
+      return new THREE.MeshStandardMaterial({
+        color,
+        roughness: 0.78,
+        metalness: 0.0,
+        flatShading: true,
+      });
+    }
+
+    // ========== 地面与草地基础 ==========
+    const ground = new THREE.Mesh(
+      new THREE.BoxGeometry(CONFIG.cols + 6, 0.4, CONFIG.rows + 6),
+      clay(0x6D4C41)
+    );
+    ground.position.y = -0.2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const grassBase = new THREE.Mesh(
+      new THREE.BoxGeometry(CONFIG.cols + 1.4, 0.12, CONFIG.rows + 1.4),
+      clay(0x7CB342)
+    );
+    grassBase.position.y = 0.06;
+    grassBase.receiveShadow = true;
+    scene.add(grassBase);
+
+    // 草地四角小石头
+    const cornerPositions = [
+      [-(CONFIG.cols + 1.4) / 2 + 0.3, 0.15, -(CONFIG.rows + 1.4) / 2 + 0.3],
+      [(CONFIG.cols + 1.4) / 2 - 0.3, 0.15, -(CONFIG.rows + 1.4) / 2 + 0.3],
+      [-(CONFIG.cols + 1.4) / 2 + 0.3, 0.15, (CONFIG.rows + 1.4) / 2 - 0.3],
+      [(CONFIG.cols + 1.4) / 2 - 0.3, 0.15, (CONFIG.rows + 1.4) / 2 - 0.3],
+    ];
+    cornerPositions.forEach(p => {
+      const rock = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(0.25, 0),
+        clay(0x8D6E63)
+      );
+      rock.position.set(...p);
+      rock.rotation.set(Math.random(), Math.random(), Math.random());
+      rock.castShadow = true;
+      rock.receiveShadow = true;
+      scene.add(rock);
+    });
+
+    // ========== 远处山丘 ==========
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2 + Math.random() * 0.3;
+      const dist = 13 + Math.random() * 5;
+      const hill = new THREE.Mesh(
+        new THREE.ConeGeometry(2 + Math.random() * 1.8, 2.2 + Math.random() * 1.5, 6),
+        clay(i % 3 === 0 ? 0x8D6E63 : 0x558B2F)
+      );
+      hill.position.set(Math.cos(angle) * dist, 0.4, Math.sin(angle) * dist);
+      hill.rotation.y = Math.random() * Math.PI;
+      hill.castShadow = true;
+      hill.receiveShadow = true;
+      scene.add(hill);
+    }
+
+    // ========== 云朵（半透明） ==========
+    function makeCloud(x, y, z, scale) {
+      const cloud = new THREE.Group();
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xFFF8E1,
+        roughness: 0.95,
+        flatShading: true,
+        transparent: true,
+        opacity: 0.78,
+        depthWrite: false,
+      });
+      for (let i = 0; i < 5; i++) {
+        const s = 0.6 + Math.random() * 0.5;
+        const m = new THREE.Mesh(new THREE.IcosahedronGeometry(s, 0), mat);
+        m.position.set((Math.random() - 0.5) * 1.6, Math.random() * 0.3, (Math.random() - 0.5) * 1.6);
+        cloud.add(m);
+      }
+      cloud.position.set(x, y, z);
+      cloud.scale.setScalar(scale);
+      cloud.userData = {
+        driftSpeed: 0.08 + Math.random() * 0.1,
+        driftRange: 4,
+        startX: x,
+      };
+      return cloud;
+    }
+
+    const clouds = [];
+    for (let i = 0; i < 5; i++) {
+      const cloud = makeCloud(
+        (Math.random() - 0.5) * 22,
+        8 + Math.random() * 3,
+        (Math.random() - 0.5) * 22,
+        0.8 + Math.random() * 0.6
+      );
+      scene.add(cloud);
+      clouds.push(cloud);
+    }
+
+    // ========== 数字纹理 ==========
+    const NUM_COLORS = ['', '#00897B', '#7CB342', '#FB8C00', '#8E24AA', '#C62828', '#00ACC1', '#5D4037', '#37474F'];
+    const numTextures = [null];
+    for (let i = 1; i <= 8; i++) {
+      const c = document.createElement('canvas');
+      c.width = c.height = 128;
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0, 0, 128, 128);
+      ctx.font = 'bold 100px Bungee, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.strokeStyle = '#FFF8E1';
+      ctx.lineWidth = 12;
+      ctx.strokeText(i, 64, 72);
+      ctx.fillStyle = NUM_COLORS[i];
+      ctx.fillText(i, 64, 72);
+      const tex = new THREE.CanvasTexture(c);
+      tex.anisotropy = 4;
+      numTextures.push(tex);
+    }
+
+    // ========== 方块创建 ==========
+    const cellGroup = new THREE.Group();
+    scene.add(cellGroup);
+
+    function createCell(x, y) {
+      const group = new THREE.Group();
+      const s = CONFIG.cellSize * 0.92;
+      const h = CONFIG.cellHeight;
+
+      // 方块几何（顶点扰动）
+      const geo = new THREE.BoxGeometry(s, h, s);
+      const pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        pos.setX(i, pos.getX(i) + (Math.random() - 0.5) * 0.04);
+        pos.setZ(i, pos.getZ(i) + (Math.random() - 0.5) * 0.04);
+        pos.setY(i, pos.getY(i) + (Math.random() - 0.5) * 0.02);
+      }
+      geo.computeVertexNormals();
+
+      const topMat = clay(0x9CCC65);
+      const sideMat = clay(0x7CB342);
+      const bottomMat = clay(0x5D4037);
+      const mats = [sideMat, sideMat, topMat, bottomMat, sideMat, sideMat];
+
+      const mesh = new THREE.Mesh(geo, mats);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.position.y = GRASS_TOP_Y + h / 2;
+      group.add(mesh);
+
+      // 草叶装饰 — 存储引用以便后续飞走动画
+      let bladeGroup = null;
+      if (Math.random() < 0.4) {
+        bladeGroup = new THREE.Group();
+        const bladeCount = Math.floor(Math.random() * 2) + 1;
+        for (let i = 0; i < bladeCount; i++) {
+          const blade = new THREE.Mesh(
+            new THREE.ConeGeometry(0.04, 0.16 + Math.random() * 0.08, 4),
+            clay(0x558B2F)
+          );
+          blade.position.set(
+            (Math.random() - 0.5) * s * 0.55,
+            CELL_TOP_Y + 0.08,
+            (Math.random() - 0.5) * s * 0.55
+          );
+          blade.rotation.z = (Math.random() - 0.5) * 0.4;
+          blade.castShadow = true;
+          bladeGroup.add(blade);
+        }
+        group.add(bladeGroup);
+      }
+
+      // 数字平面 —— 紧贴草地顶面（坑底）
+      const numMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(s * 0.85, s * 0.85),
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+      );
+      numMesh.rotation.x = -Math.PI / 2;
+      numMesh.position.y = GRASS_TOP_Y + 0.02;
+      numMesh.scale.setScalar(0.3);
+      group.add(numMesh);
+
+      // 旗子
+      const flagGroup = new THREE.Group();
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.035, 0.035, 0.7, 6),
+        clay(0x5D4037)
+      );
+      pole.position.y = 0.35;
+      pole.castShadow = true;
+      flagGroup.add(pole);
+
+      const flag = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, 0.2, 0.025),
+        clay(0xE63946)
+      );
+      flag.position.set(0.16, 0.58, 0);
+      flag.castShadow = true;
+      flagGroup.add(flag);
+
+      const poleTop = new THREE.Mesh(
+        new THREE.SphereGeometry(0.045, 8, 8),
+        clay(0xFFB300)
+      );
+      poleTop.position.y = 0.7;
+      flagGroup.add(poleTop);
+
+      flagGroup.position.y = CELL_TOP_Y - 0.02;
+      flagGroup.scale.setScalar(0);
+      flagGroup.visible = false;
+      group.add(flagGroup);
+
+      // 炸弹
+      const bombGroup = new THREE.Group();
+      const bomb = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(0.22, 0),
+        clay(0x212121)
+      );
+      bomb.position.y = 0.22;
+      bomb.castShadow = true;
+      bombGroup.add(bomb);
+
+      const bombHi = new THREE.Mesh(
+        new THREE.SphereGeometry(0.05, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xFFFFFF })
+      );
+      bombHi.position.set(-0.07, 0.3, 0.07);
+      bombGroup.add(bombHi);
+
+      const fuse = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.022, 0.022, 0.18, 5),
+        clay(0x8D6E63)
+      );
+      fuse.position.set(0.08, 0.42, 0);
+      fuse.rotation.z = -0.35;
+      fuse.castShadow = true;
+      bombGroup.add(fuse);
+
+      const tip = new THREE.Mesh(
+        new THREE.SphereGeometry(0.045, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xFF6F00 })
+      );
+      tip.position.set(0.16, 0.5, 0);
+      bombGroup.add(tip);
+
+      bombGroup.visible = false;
+      group.add(bombGroup);
+
+      // 位置
+      group.position.set(
+        (x - CONFIG.cols / 2 + 0.5) * CONFIG.cellSize,
+        0,
+        (y - CONFIG.rows / 2 + 0.5) * CONFIG.cellSize
+      );
+
+      group.userData = {
+        x,
+        y,
+        topMesh: mesh,
+        numMesh,
+        flagGroup,
+        bombGroup,
+        bomb,
+        bombTip: tip,
+        state: 'idle',
+        mats,
+        bladeGroup: bladeGroup, // 可能为 null
+      };
+
+      return group;
+    }
+
+    // ========== 全局飞行草叶系统 ==========
+    const flyingBlades = []; // { mesh, velocity, angVel, life, decay }
+
+    /**
+     * 将方块上的草叶吹飞
+     * @param {THREE.Group} cell - 方块 group
+     * @param {'gentle'|'blast'} intensity - 强度
+     */
+    function flyAwayBlades(cell, intensity = 'gentle') {
+      const bladeGroup = cell.userData.bladeGroup;
+      if (!bladeGroup || bladeGroup.children.length === 0) return;
+
+      const isBlast = intensity === 'blast';
+
+      // 收集所有 blade（因为遍历过程中会修改 children）
+      const blades = [...bladeGroup.children];
+
+      for (const blade of blades) {
+        // 获取世界位置与旋转
+        const worldPos = new THREE.Vector3();
+        blade.getWorldPosition(worldPos);
+        const worldQuat = new THREE.Quaternion();
+        blade.getWorldQuaternion(worldQuat);
+
+        // 从 bladeGroup 中移除，加入场景根
+        bladeGroup.remove(blade);
+        scene.add(blade);
+        blade.position.copy(worldPos);
+        blade.quaternion.copy(worldQuat);
+
+        // 设置材质透明
+        if (blade.material && blade.material.isMaterial) {
+          blade.material.transparent = true;
+          blade.material.opacity = 1;
+          blade.material.needsUpdate = true;
+        }
+
+        // 随机风方向（主要沿 +X 或 -X，带一些 Z 分量）
+        const windDir = new THREE.Vector3(
+          (Math.random() - 0.3) * 1.6, // 偏向 +X
+          Math.random() * 0.6 + 0.7,
+          (Math.random() - 0.5) * 1.4
+        ).normalize();
+
+        const upSpeed = isBlast ? 3 + Math.random() * 7 : 1.2 + Math.random() * 3.0;
+        const horizSpeed = isBlast ? 2 + Math.random() * 5 : 0.6 + Math.random() * 2.2;
+        const gravity = isBlast ? 0.6 + Math.random() * 1.0 : 0.2 + Math.random() * 0.7;
+        const lifeDuration = isBlast ? 0.7 + Math.random() * 1.1 : 1.4 + Math.random() * 1.6;
+        const angSpeed = isBlast ? 5 + Math.random() * 13 : 2 + Math.random() * 5;
+
+        const velocity = new THREE.Vector3(
+          windDir.x * horizSpeed,
+          upSpeed,
+          windDir.z * horizSpeed
+        );
+
+        const angVel = new THREE.Vector3(
+          (Math.random() - 0.5) * angSpeed,
+          (Math.random() - 0.5) * angSpeed,
+          (Math.random() - 0.5) * angSpeed
+        );
+
+        flyingBlades.push({
+          mesh: blade,
+          velocity,
+          angVel,
+          gravity,
+          life: 1,
+          decay: 1 / lifeDuration,
+        });
+      }
+
+      // 清理空的 bladeGroup
+      if (bladeGroup.parent) {
+        bladeGroup.parent.remove(bladeGroup);
+      }
+      cell.userData.bladeGroup = null;
+    }
+
+    // ========== 游戏初始化 ==========
+    function initGame() {
+      // 清理飞行中的草叶
+      for (const fb of flyingBlades) {
+        scene.remove(fb.mesh);
+        if (fb.mesh.geometry) fb.mesh.geometry.dispose();
+        if (fb.mesh.material) fb.mesh.material.dispose();
+      }
+      flyingBlades.length = 0;
+
+      while (cellGroup.children.length) {
+        const c = cellGroup.children[0];
+        cellGroup.remove(c);
+        c.traverse(o => {
+          if (o.geometry) o.geometry.dispose();
+          if (o.material) {
+            if (Array.isArray(o.material)) o.material.forEach(m => m.dispose());
+            else o.material.dispose();
+          }
+        });
+      }
+
+      game.board = [];
+      game.cells = [];
+      game.firstClick = true;
+      game.gameOver = false;
+      game.win = false;
+      game.flagsPlaced = 0;
+      game.cellsRevealed = 0;
+
+      for (let y = 0; y < CONFIG.rows; y++) {
+        const row = [];
+        for (let x = 0; x < CONFIG.cols; x++) {
+          row.push({ x, y, isMine: false, isRevealed: false, isFlagged: false, neighborMines: 0 });
+        }
+        game.board.push(row);
+      }
+
+      for (let y = 0; y < CONFIG.rows; y++) {
+        const row = [];
+        for (let x = 0; x < CONFIG.cols; x++) {
+          const cell = createCell(x, y);
+          cellGroup.add(cell);
+          row.push(cell);
+        }
+        game.cells.push(row);
+      }
+
+      updateMineCount();
+      document.getElementById('timer').textContent = '000';
+      if (game.timerInterval) {
+        clearInterval(game.timerInterval);
+        game.timerInterval = null;
+      }
+      hoveredCell = null;
+    }
+
+    function placeMines(safeX, safeY) {
+      let placed = 0;
+      while (placed < CONFIG.mines) {
+        const x = Math.floor(Math.random() * CONFIG.cols);
+        const y = Math.floor(Math.random() * CONFIG.rows);
+        if ((Math.abs(x - safeX) <= 1 && Math.abs(y - safeY) <= 1) || game.board[y][x].isMine) continue;
+        game.board[y][x].isMine = true;
+        placed++;
+      }
+      for (let y = 0; y < CONFIG.rows; y++) {
+        for (let x = 0; x < CONFIG.cols; x++) {
+          if (game.board[y][x].isMine) continue;
+          let count = 0;
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              const nx = x + dx,
+                ny = y + dy;
+              if (nx >= 0 && nx < CONFIG.cols && ny >= 0 && ny < CONFIG.rows && game.board[ny][nx].isMine) count++;
+            }
+          }
+          game.board[y][x].neighborMines = count;
+        }
+      }
+    }
+
+    // ========== 交互 ==========
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let hoveredCell = null;
+    let mouseDownPos = { x: 0, y: 0 };
+    let mouseDownTime = 0;
+    let isDragging = false;
+
+    function getMouseCell(e) {
+      mouse.x = (e.clientX / innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(cellGroup.children, true);
+      for (const hit of hits) {
+        let obj = hit.object;
+        while (obj.parent && obj.parent !== cellGroup) obj = obj.parent;
+        if (obj.userData && obj.userData.x !== undefined) return obj;
+      }
+      return null;
+    }
+
+    renderer.domElement.addEventListener('mousedown', e => {
+      mouseDownPos = { x: e.clientX, y: e.clientY };
+      mouseDownTime = Date.now();
+      isDragging = false;
+    });
+
+    renderer.domElement.addEventListener('mousemove', e => {
+      if (e.buttons > 0) {
+        const dx = e.clientX - mouseDownPos.x;
+        const dy = e.clientY - mouseDownPos.y;
+        if (Math.sqrt(dx * dx + dy * dy) > 5) isDragging = true;
+      }
+      if (game.gameOver) return;
+      const cell = getMouseCell(e);
+      if (cell !== hoveredCell) {
+        if (hoveredCell && hoveredCell.userData.state === 'hovering') {
+          hoveredCell.userData.state = 'idle';
+        }
+        hoveredCell = cell;
+        if (cell && cell.userData.state === 'idle') {
+          cell.userData.state = 'hovering';
+        }
+      }
+    });
+
+    renderer.domElement.addEventListener('mouseup', e => {
+      if (isDragging || Date.now() - mouseDownTime > 500) return;
+      if (game.gameOver) return;
+      const cell = getMouseCell(e);
+      if (!cell) return;
+      const { x, y } = cell.userData;
+      const b = game.board[y][x];
+      if (e.button === 0) {
+        if (!b.isFlagged && !b.isRevealed) revealCell(x, y);
+      } else if (e.button === 2) {
+        if (!b.isRevealed) toggleFlag(x, y);
+      }
+    });
+
+    renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+
+    // ========== 游戏逻辑 ==========
+    function startTimer() {
+      if (game.timerInterval) return;
+      game.startTime = Date.now();
+      game.timerInterval = setInterval(() => {
+        const t = Math.floor((Date.now() - game.startTime) / 1000);
+        document.getElementById('timer').textContent = String(t).padStart(3, '0');
+      }, 200);
+    }
+
+    function stopTimer() {
+      if (game.timerInterval) {
+        clearInterval(game.timerInterval);
+        game.timerInterval = null;
+      }
+    }
+
+    function updateMineCount() {
+      document.getElementById('mineCount').textContent = String(Math.max(0, CONFIG.mines - game.flagsPlaced)).padStart(2,
+        '0');
+    }
+
+    function revealCell(x, y) {
+      if (game.firstClick) {
+        placeMines(x, y);
+        game.firstClick = false;
+        startTimer();
+      }
+
+      const queue = [{ x, y, delay: 0 }];
+      const visited = new Set([`${x},${y}`]);
+
+      while (queue.length) {
+        const { x: cx, y: cy, delay } = queue.shift();
+        const b = game.board[cy][cx];
+        if (b.isRevealed || b.isFlagged) continue;
+
+        setTimeout(() => {
+          if (!game.gameOver) revealOne(cx, cy);
+        }, delay);
+
+        if (b.neighborMines === 0 && !b.isMine) {
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              if (dx === 0 && dy === 0) continue;
+              const nx = cx + dx,
+                ny = cy + dy;
+              if (nx >= 0 && nx < CONFIG.cols && ny >= 0 && ny < CONFIG.rows) {
+                const key = `${nx},${ny}`;
+                if (!visited.has(key)) {
+                  const n = game.board[ny][nx];
+                  if (!n.isRevealed && !n.isFlagged) {
+                    visited.add(key);
+                    queue.push({ x: nx, y: ny, delay: delay + 35 });
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    function revealOne(x, y) {
+      const b = game.board[y][x];
+      if (b.isRevealed || b.isFlagged) return;
+      b.isRevealed = true;
+      game.cellsRevealed++;
+
+      const cell = game.cells[y][x];
+      cell.userData.state = 'revealed';
+
+      if (b.isMine) {
+        explodeCell(cell);
+        return;
+      }
+
+      // ★ 正常翻开：草叶被微风吹走
+      flyAwayBlades(cell, 'gentle');
+
+      animateReveal(cell, b.neighborMines);
+      checkWin();
+    }
+
+    function animateReveal(cell, num) {
+      const top = cell.userData.topMesh;
+      const startY = top.position.y;
+      const startScale = top.scale.x;
+      const mats = cell.userData.mats;
+      mats.forEach(m => { m.transparent = true; });
+
+      const duration = 360;
+      const start = performance.now();
+
+      function step() {
+        const t = Math.min((performance.now() - start) / duration, 1);
+        const e = 1 - Math.pow(1 - t, 3);
+
+        top.position.y = startY - e * 0.5;
+        top.scale.setScalar(startScale * (1 - e * 0.5));
+        top.rotation.x = e * 0.4;
+        top.rotation.z = e * 0.25;
+        mats.forEach(m => { m.opacity = 1 - e; });
+
+        if (t < 1) requestAnimationFrame(step);
+        else {
+          top.visible = false;
+          if (num > 0) {
+            const numMesh = cell.userData.numMesh;
+            numMesh.material.map = numTextures[num];
+            numMesh.material.needsUpdate = true;
+            const ns = performance.now();
+            const c1 = 1.70158,
+              c3 = c1 + 1;
+            (function numStep() {
+              const nt = Math.min((performance.now() - ns) / 380, 1);
+              const e2 = 1 + c3 * Math.pow(nt - 1, 3) + c1 * Math.pow(nt - 1, 2);
+              numMesh.material.opacity = Math.min(1, nt * 1.5);
+              numMesh.scale.setScalar(Math.max(0.05, e2));
+              if (nt < 1) requestAnimationFrame(numStep);
+            })();
+          }
+        }
+      }
+      step();
+    }
+
+    function toggleFlag(x, y) {
+      const b = game.board[y][x];
+      const cell = game.cells[y][x];
+      const flagGroup = cell.userData.flagGroup;
+
+      if (!b.isFlagged) {
+        b.isFlagged = true;
+        game.flagsPlaced++;
+        cell.userData.state = 'flagged';
+
+        flagGroup.visible = true;
+        flagGroup.scale.setScalar(0);
+
+        const start = performance.now();
+        (function step() {
+          const t = Math.min((performance.now() - start) / 450, 1);
+          const c1 = 1.70158,
+            c3 = c1 + 1;
+          const e = 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+          flagGroup.scale.setScalar(Math.max(0, e));
+          if (t < 1) requestAnimationFrame(step);
+        })();
+
+        showToast('FLAGGED');
+      } else {
+        b.isFlagged = false;
+        game.flagsPlaced--;
+        cell.userData.state = 'idle';
+
+        const sScale = flagGroup.scale.x;
+        const start = performance.now();
+        (function step() {
+          const t = Math.min((performance.now() - start) / 280, 1);
+          const e = t * t;
+          flagGroup.scale.setScalar(sScale * (1 - e));
+          if (t < 1) requestAnimationFrame(step);
+          else flagGroup.visible = false;
+        })();
+      }
+
+      updateMineCount();
+    }
+
+    function explodeCell(cell) {
+      // ★ 爆炸：草叶被炸飞
+      flyAwayBlades(cell, 'blast');
+
+      cell.userData.state = 'exploded';
+      game.gameOver = true;
+      stopTimer();
+
+      const top = cell.userData.topMesh;
+      const mats = cell.userData.mats;
+      mats.forEach(m => { m.transparent = true; });
+      const sY = top.position.y;
+      const start = performance.now();
+      (function step() {
+        const t = Math.min((performance.now() - start) / 320, 1);
+        top.position.y = sY + t * 0.4 - t * t * 0.7;
+        top.scale.setScalar(1 - t * 0.6);
+        top.rotation.x = t * 2.2;
+        top.rotation.z = t * 1.6;
+        mats.forEach(m => { m.opacity = 1 - t; });
+        if (t < 1) requestAnimationFrame(step);
+        else top.visible = false;
+      })();
+
+      cell.userData.bombGroup.visible = true;
+      cell.userData.bombGroup.position.y = -0.5;
+      const bs = performance.now();
+      (function bstep() {
+        const t = Math.min((performance.now() - bs) / 320, 1);
+        const e = 1 - Math.pow(1 - t, 3);
+        cell.userData.bombGroup.position.y = -0.5 + e * 0.5;
+        if (t < 1) requestAnimationFrame(bstep);
+        else fuseBurn(cell);
+      })();
+
+      shakeCamera(0.15, 300);
+    }
+
+    function fuseBurn(cell) {
+      const tip = cell.userData.bombTip;
+      const bombGroup = cell.userData.bombGroup;
+      const start = performance.now();
+      const dur = 550;
+
+      (function step() {
+        const t = Math.min((performance.now() - start) / dur, 1);
+        tip.scale.setScalar(1 + Math.sin(t * 35) * 0.5);
+        tip.material.color.setHSL(0.08 + Math.sin(t * 35) * 0.03, 1, 0.5 + Math.sin(t * 35) * 0.3);
+        bombGroup.position.x = (Math.random() - 0.5) * 0.02;
+        bombGroup.position.z = (Math.random() - 0.5) * 0.02;
+        if (Math.random() < 0.5) {
+          const tipPos = tip.getWorldPosition(new THREE.Vector3());
+          spawnFuseSpark(tipPos);
+        }
+        if (t < 1) requestAnimationFrame(step);
+        else triggerExplosion(cell);
+      })();
+    }
+
+    const fuseSparks = [];
+
+    function spawnFuseSpark(pos) {
+      const geo = new THREE.SphereGeometry(0.025, 4, 4);
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xFFD54F,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+      });
+      const m = new THREE.Mesh(geo, mat);
+      m.position.copy(pos);
+      m.userData = {
+        velocity: new THREE.Vector3(
+          (Math.random() - 0.5) * 2.5,
+          Math.random() * 2.5 + 1,
+          (Math.random() - 0.5) * 2.5
+        ),
+        life: 1,
+        decay: 2,
+      };
+      scene.add(m);
+      fuseSparks.push(m);
+    }
+
+    function triggerExplosion(cell) {
+      const pos = new THREE.Vector3();
+      cell.getWorldPosition(pos);
+      pos.y = 0.35;
+
+      explosions.push(new Explosion(pos, scene));
+      cell.userData.bombGroup.visible = false;
+
+      shakeCamera(0.7, 800);
+
+      setTimeout(() => {
+        showModal('lose');
+        revealAllMines();
+      }, 1800);
+    }
+
+    function revealAllMines() {
+      for (let y = 0; y < CONFIG.rows; y++) {
+        for (let x = 0; x < CONFIG.cols; x++) {
+          const b = game.board[y][x];
+          const cell = game.cells[y][x];
+          if (b.isMine && !b.isRevealed && cell.userData.state !== 'exploded') {
+            const top = cell.userData.topMesh;
+            const mats = cell.userData.mats;
+            mats.forEach(m => { m.transparent = true; });
+            const delay = Math.random() * 900;
+
+            // ★ 延迟后草叶飞走（与方块消失同步）
+            setTimeout(() => {
+              if (cell.userData.bladeGroup && cell.userData.bladeGroup.children.length > 0) {
+                flyAwayBlades(cell, 'gentle');
+              }
+            }, delay);
+
+            const start = performance.now() + delay;
+            (function step() {
+              const now = performance.now();
+              if (now < start) {
+                requestAnimationFrame(step);
+                return;
+              }
+              const t = Math.min((now - start) / 300, 1);
+              mats.forEach(m => { m.opacity = 1 - t; });
+              top.position.y = top.position.y + 0.003;
+              if (t < 1) requestAnimationFrame(step);
+              else {
+                top.visible = false;
+                cell.userData.bombGroup.visible = true;
+                cell.userData.bombGroup.position.y = 0;
+              }
+            })();
+          }
+        }
+      }
+    }
+
+    function checkWin() {
+      const total = CONFIG.cols * CONFIG.rows;
+      if (game.cellsRevealed === total - CONFIG.mines && !game.gameOver) {
+        game.win = true;
+        game.gameOver = true;
+        stopTimer();
+        setTimeout(() => {
+          showModal('win');
+          for (let i = 0; i < 6; i++) {
+            setTimeout(() => {
+              const pos = new THREE.Vector3(
+                (Math.random() - 0.5) * 8,
+                3.5 + Math.random() * 3,
+                (Math.random() - 0.5) * 8
+              );
+              explosions.push(new Explosion(pos, scene));
+            }, i * 280);
+          }
+        }, 500);
+      }
+    }
+
+    function showModal(type) {
+      const m = document.getElementById('modal');
+      const card = document.getElementById('modalCard');
+      const title = document.getElementById('modalTitle');
+      const text = document.getElementById('modalText');
+      card.className = 'modal-card ' + type;
+      if (type === 'lose') {
+        title.textContent = 'BOOM!';
+        text.textContent = '你踩到地雷了，再来一次！';
+      } else {
+        title.textContent = 'CLEAR!';
+        text.textContent = `用时 ${document.getElementById('timer').textContent} 秒，太棒了！`;
+      }
+      m.classList.add('show');
+    }
+
+    function hideModal() {
+      document.getElementById('modal').classList.remove('show');
+    }
+
+    function showToast(text) {
+      const t = document.getElementById('toast');
+      t.textContent = text;
+      t.classList.add('show');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.remove('show'), 1100);
+    }
+
+    // ========== 爆炸粒子系统 ==========
+    const explosions = [];
+
+    class Explosion {
+      constructor(pos, scene) {
+        this.scene = scene;
+        this.particles = [];
+
+        for (let i = 0; i < 120; i++) this.spark(pos);
+        for (let i = 0; i < 35; i++) this.smoke(pos);
+        for (let i = 0; i < 28; i++) this.debris(pos);
+        this.shockwave(pos);
+        this.flash(pos);
+      }
+
+      spark(pos) {
+        const geo = new THREE.SphereGeometry(0.05 + Math.random() * 0.07, 4, 4);
+        const hue = 0.05 + Math.random() * 0.08;
+        const c = new THREE.Color().setHSL(hue, 1, 0.55 + Math.random() * 0.3);
+        const mat = new THREE.MeshBasicMaterial({
+          color: c,
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+        });
+        const m = new THREE.Mesh(geo, mat);
+        m.position.copy(pos);
+        const a = Math.random() * Math.PI * 2;
+        const e = Math.random() * Math.PI * 0.55;
+        const sp = 3.5 + Math.random() * 9;
+        m.userData = {
+          type: 'spark',
+          velocity: new THREE.Vector3(
+            Math.cos(a) * Math.cos(e) * sp,
+            Math.sin(e) * sp + 1.5,
+            Math.sin(a) * Math.cos(e) * sp
+          ),
+          angVel: new THREE.Vector3(Math.random() * 10, Math.random() * 10, Math.random() * 10),
+          life: 1,
+          decay: 0.55 + Math.random() * 0.7,
+        };
+        this.scene.add(m);
+        this.particles.push(m);
+      }
+
+      smoke(pos) {
+        const geo = new THREE.SphereGeometry(0.12 + Math.random() * 0.12, 6, 6);
+        const c = new THREE.Color().setHSL(0.05, 0.1, 0.28 + Math.random() * 0.2);
+        const mat = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.65 });
+        const m = new THREE.Mesh(geo, mat);
+        m.position.copy(pos);
+        const a = Math.random() * Math.PI * 2;
+        const e = Math.random() * Math.PI * 0.4;
+        const sp = 1 + Math.random() * 2.5;
+        m.userData = {
+          type: 'smoke',
+          velocity: new THREE.Vector3(
+            Math.cos(a) * Math.cos(e) * sp,
+            Math.sin(e) * sp + 1.8,
+            Math.sin(a) * Math.cos(e) * sp
+          ),
+          life: 1,
+          decay: 0.22 + Math.random() * 0.3,
+          growth: 1.4 + Math.random(),
+        };
+        this.scene.add(m);
+        this.particles.push(m);
+      }
+
+      debris(pos) {
+        const size = 0.08 + Math.random() * 0.13;
+        const geo = new THREE.TetrahedronGeometry(size);
+        const colors = [0x6D4C41, 0x8D6E63, 0x5D4037, 0x7CB342, 0x9CCC65, 0x558B2F];
+        const c = colors[Math.floor(Math.random() * colors.length)];
+        const mat = clay(c);
+        mat.transparent = true;
+        const m = new THREE.Mesh(geo, mat);
+        m.position.copy(pos);
+        m.castShadow = true;
+        const a = Math.random() * Math.PI * 2;
+        const e = Math.random() * Math.PI * 0.5;
+        const sp = 4 + Math.random() * 7;
+        m.userData = {
+          type: 'debris',
+          velocity: new THREE.Vector3(
+            Math.cos(a) * Math.cos(e) * sp,
+            Math.sin(e) * sp + 2,
+            Math.sin(a) * Math.cos(e) * sp
+          ),
+          angVel: new THREE.Vector3(
+            (Math.random() - 0.5) * 22,
+            (Math.random() - 0.5) * 22,
+            (Math.random() - 0.5) * 22
+          ),
+          life: 1,
+          decay: 0.22 + Math.random() * 0.3,
+        };
+        this.scene.add(m);
+        this.particles.push(m);
+      }
+
+      shockwave(pos) {
+        const geo = new THREE.RingGeometry(0.15, 0.32, 36);
+        const mat = new THREE.MeshBasicMaterial({
+          color: 0xFFD54F,
+          transparent: true,
+          side: THREE.DoubleSide,
+          blending: THREE.AdditiveBlending,
+        });
+        const m = new THREE.Mesh(geo, mat);
+        m.position.copy(pos);
+        m.position.y = 0.08;
+        m.rotation.x = -Math.PI / 2;
+        m.userData = { type: 'shockwave', life: 1, decay: 1.4, growth: 11 };
+        this.scene.add(m);
+        this.particles.push(m);
+      }
+
+      flash(pos) {
+        const geo = new THREE.SphereGeometry(0.5, 16, 16);
+        const mat = new THREE.MeshBasicMaterial({
+          color: 0xFFFF00,
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+        });
+        const m = new THREE.Mesh(geo, mat);
+        m.position.copy(pos);
+        m.userData = { type: 'flash', life: 1, decay: 4 };
+        this.scene.add(m);
+        this.particles.push(m);
+
+        const light = new THREE.PointLight(0xFFAA00, 6, 10);
+        light.position.copy(pos);
+        light.userData = { type: 'light', life: 1, decay: 3.5 };
+        this.scene.add(light);
+        this.particles.push(light);
+      }
+
+      update(dt) {
+        let alive = false;
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          const ud = p.userData;
+
+          if (ud.type === 'spark' || ud.type === 'debris') {
+            ud.velocity.y -= 16 * dt;
+            p.position.add(ud.velocity.clone().multiplyScalar(dt));
+            p.rotation.x += ud.angVel.x * dt;
+            p.rotation.y += ud.angVel.y * dt;
+            p.rotation.z += ud.angVel.z * dt;
+            if (p.position.y < 0.05) {
+              p.position.y = 0.05;
+              ud.velocity.y *= -0.4;
+              ud.velocity.x *= 0.6;
+              ud.velocity.z *= 0.6;
+              ud.angVel.multiplyScalar(0.5);
+            }
+            ud.life -= ud.decay * dt;
+            p.material.opacity = Math.max(0, ud.life);
+            if (ud.type === 'spark') p.scale.setScalar(Math.max(0.01, ud.life));
+          } else if (ud.type === 'smoke') {
+            ud.velocity.y += 0.7 * dt;
+            ud.velocity.multiplyScalar(0.96);
+            p.position.add(ud.velocity.clone().multiplyScalar(dt));
+            p.scale.setScalar(p.scale.x + ud.growth * dt);
+            ud.life -= ud.decay * dt;
+            p.material.opacity = Math.max(0, ud.life * 0.6);
+          } else if (ud.type === 'shockwave') {
+            p.scale.setScalar(p.scale.x + ud.growth * dt);
+            ud.life -= ud.decay * dt;
+            p.material.opacity = Math.max(0, ud.life);
+          } else if (ud.type === 'flash') {
+            ud.life -= ud.decay * dt;
+            p.material.opacity = Math.max(0, ud.life);
+            p.scale.setScalar(1 + (1 - ud.life) * 3);
+          } else if (ud.type === 'light') {
+            ud.life -= ud.decay * dt;
+            p.intensity = Math.max(0, ud.life * 6);
+          }
+
+          if (ud.life <= 0) {
+            this.scene.remove(p);
+            if (p.geometry) p.geometry.dispose();
+            if (p.material && p.material.dispose) p.material.dispose();
+            this.particles.splice(i, 1);
+          } else {
+            alive = true;
+          }
+        }
+        return alive;
+      }
+    }
+
+    // ========== 相机震动 ==========
+    let shakeAmount = 0;
+    let shakeDecay = 0;
+
+    function shakeCamera(amount, duration) {
+      shakeAmount = Math.max(shakeAmount, amount);
+      shakeDecay = shakeAmount / (duration / 1000);
+    }
+
+    // ========== 动画主循环 ==========
+    let lastTime = performance.now();
+
+    function animate() {
+      const now = performance.now();
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+
+      for (let y = 0; y < CONFIG.rows; y++) {
+        for (let x = 0; x < CONFIG.cols; x++) {
+          const cell = game.cells[y] && game.cells[y][x];
+          if (!cell) continue;
+          const ud = cell.userData;
+          let targetY = 0;
+          if (ud.state === 'hovering') targetY = 0.16;
+          else if (ud.state === 'flagged') targetY = -0.04;
+          cell.position.y += (targetY - cell.position.y) * 0.18;
+
+          if (ud.state === 'flagged' && ud.flagGroup.visible) {
+            ud.flagGroup.rotation.y = Math.sin(now * 0.003 + x * 0.5 + y * 0.3) * 0.1;
+          }
+        }
+      }
+
+      // 更新飞行中的草叶
+      for (let i = flyingBlades.length - 1; i >= 0; i--) {
+        const fb = flyingBlades[i];
+        const mesh = fb.mesh;
+
+        // 重力
+        fb.velocity.y -= fb.gravity * dt;
+        // 风阻力（水平速度逐渐衰减）
+        fb.velocity.x *= 0.995;
+        fb.velocity.z *= 0.995;
+
+        // 更新位置
+        mesh.position.x += fb.velocity.x * dt;
+        mesh.position.y += fb.velocity.y * dt;
+        mesh.position.z += fb.velocity.z * dt;
+
+        // 旋转（翻滚 + 螺旋）
+        mesh.rotation.x += fb.angVel.x * dt;
+        mesh.rotation.y += fb.angVel.y * dt;
+        mesh.rotation.z += fb.angVel.z * dt;
+
+        // 生命周期
+        fb.life -= fb.decay * dt;
+        if (mesh.material && mesh.material.isMaterial) {
+          mesh.material.opacity = Math.max(0, fb.life);
+        }
+
+        // 落地或生命耗尽
+        if (fb.life <= 0 || mesh.position.y < 0.03) {
+          scene.remove(mesh);
+          if (mesh.geometry) mesh.geometry.dispose();
+          if (mesh.material) mesh.material.dispose();
+          flyingBlades.splice(i, 1);
+        }
+      }
+
+      // 云朵漂移
+      for (const c of clouds) {
+        c.position.x += c.userData.driftSpeed * dt;
+        if (c.position.x > c.userData.startX + c.userData.driftRange) {
+          c.position.x = c.userData.startX - c.userData.driftRange;
+        }
+        c.rotation.y = now * 0.0001;
+      }
+
+      // 爆炸粒子
+      for (let i = explosions.length - 1; i >= 0; i--) {
+        if (!explosions[i].update(dt)) explosions.splice(i, 1);
+      }
+
+      // 引信火花
+      for (let i = fuseSparks.length - 1; i >= 0; i--) {
+        const p = fuseSparks[i];
+        const ud = p.userData;
+        ud.velocity.y -= 14 * dt;
+        p.position.add(ud.velocity.clone().multiplyScalar(dt));
+        if (p.position.y < 0.05) {
+          p.position.y = 0.05;
+          ud.velocity.y *= -0.3;
+          ud.velocity.x *= 0.5;
+          ud.velocity.z *= 0.5;
+        }
+        ud.life -= ud.decay * dt;
+        p.material.opacity = Math.max(0, ud.life);
+        p.scale.setScalar(Math.max(0.01, ud.life));
+        if (ud.life <= 0) {
+          scene.remove(p);
+          p.geometry.dispose();
+          p.material.dispose();
+          fuseSparks.splice(i, 1);
+        }
+      }
+
+      // 相机震动
+      if (shakeAmount > 0.001) {
+        camera.position.x += (Math.random() - 0.5) * shakeAmount;
+        camera.position.y += (Math.random() - 0.5) * shakeAmount;
+        camera.position.z += (Math.random() - 0.5) * shakeAmount;
+        shakeAmount -= shakeDecay * dt;
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      hideModal();
+      initGame();
+    });
+    document.getElementById('modalBtn').addEventListener('click', () => {
+      hideModal();
+      initGame();
+    });
+
+    initGame();
+    animate();
+
+    setTimeout(() => {
+      document.getElementById('loading').classList.add('hide');
+    }, 700);
+  </script>
+</body>
+</html>

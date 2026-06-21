@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>游戏站</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icon.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0710;
+  --bg-elev: #15101a;
+  --fg: #f5f5f7;
+  --muted: #8b8b9a;
+  --border: rgba(255,255,255,0.08);
+  --accent: #ff6b9d;
+  --accent-2: #ffb3c6;
+  --accent-3: #c084fc;
+  --card: rgba(255,255,255,0.03);
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); margin: 0; padding: 0; }
+body {
+  font-family: 'Outfit', sans-serif;
+  color: var(--fg);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+.font-display { font-family: 'Syne', sans-serif; letter-spacing: -0.02em; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+/* ===== 背景层 ===== */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 85%);
+}
+.bg-glow {
+  position: fixed; pointer-events: none; z-index: 0;
+  filter: blur(90px); opacity: 0.4;
+  animation: float 22s infinite ease-in-out;
+}
+.bg-glow-1 { top: -15%; left: -8%; width: 620px; height: 620px;
+  background: radial-gradient(circle, #ff6b9d 0%, transparent 70%); }
+.bg-glow-2 { bottom: -20%; right: -10%; width: 720px; height: 720px;
+  background: radial-gradient(circle, #c084fc 0%, transparent 70%); animation-delay: -11s; }
+.bg-glow-3 { top: 40%; left: 50%; width: 500px; height: 500px;
+  background: radial-gradient(circle, #ffb3c6 0%, transparent 70%); animation-delay: -6s; opacity: 0.25; }
+
+@keyframes float {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  33% { transform: translate(60px,-40px) scale(1.05); }
+  66% { transform: translate(-40px,60px) scale(0.95); }
+}
+
+#particleCanvas {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 1; pointer-events: none;
+}
+
+/* ===== 导航栏 ===== */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  background: rgba(13,7,16,0.65);
+  border-bottom: 1px solid var(--border);
+}
+.search-input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+  color: var(--fg);
+}
+.search-input::placeholder { color: #6b6b7a; }
+.search-input:focus {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,107,157,0.5);
+  box-shadow: 0 0 0 4px rgba(255,107,157,0.08);
+  outline: none;
+}
+
+/* ===== 分类标签 ===== */
+.category-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.category-chip {
+  position: relative;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer; white-space: nowrap;
+  color: #c5c5d0;
+}
+.category-chip:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.18);
+  transform: translateY(-2px);
+  color: #fff;
+}
+.category-chip.active {
+  background: linear-gradient(135deg, #ff6b9d, #ffb3c6);
+  border-color: transparent; color: #0d0710;
+  font-weight: 600;
+  box-shadow: 0 10px 28px -8px rgba(255,107,157,0.5);
+}
+.category-chip.active .chip-count {
+  background: rgba(0,0,0,0.25); color: #0d0710;
+}
+.chip-count {
+  background: rgba(255,255,255,0.06);
+  font-size: 10px; padding: 1px 7px;
+  border-radius: 999px; margin-left: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.3s;
+}
+
+/* ===== 游戏卡片 ===== */
+.game-card {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 0.4s ease,
+              border-color 0.3s ease;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  will-change: transform;
+}
+.game-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.06) 50%, transparent 70%);
+  opacity: 0; transition: opacity 0.5s;
+  pointer-events: none; z-index: 3;
+}
+.game-card:hover {
+  border-color: rgba(255,255,255,0.18);
+  box-shadow: 
+    0 24px 60px -12px rgba(0,0,0,0.6),
+    0 0 0 1px rgba(255,107,157,0.15),
+    0 0 40px -10px rgba(255,107,157,0.3);
+}
+.game-card:hover::before { opacity: 1; }
+
+.game-card-image {
+  position: relative; height: 180px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1a1a25, #0f0f17);
+}
+.game-card-image img {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.5s;
+}
+.game-card:hover .game-card-image img {
+  transform: scale(1.12);
+  filter: saturate(1.1) contrast(1.05);
+}
+
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.game-card { animation: cardIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+
+.play-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at center, rgba(255,107,157,0.4), transparent 70%);
+  opacity: 0; transition: opacity 0.4s; z-index: 2;
+}
+.game-card:hover .play-overlay { opacity: 1; }
+.play-btn {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b9d, #ffb3c6);
+  display: flex; align-items: center; justify-content: center;
+  transform: scale(0.6); transition: transform 0.4s cubic-bezier(0.2, 1.5, 0.4, 1);
+  box-shadow: 0 12px 30px rgba(255,107,157,0.5);
+}
+.game-card:hover .play-btn { transform: scale(1); }
+
+/* ===== Tag ===== */
+.tag {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  font-size: 10px; padding: 3px 9px;
+  border-radius: 999px; color: #b5b5c0;
+  font-weight: 500; letter-spacing: 0.02em;
+}
+
+/* ===== Hero 标题 ===== */
+.hero-title {
+  background: linear-gradient(180deg, #ffffff 0%, #ffffff 55%, #5a5a6a 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.045em;
+}
+.hero-accent {
+  background: linear-gradient(135deg, #ff6b9d 0%, #ffb3c6 60%, #c084fc 130%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ===== 游戏卡片标题字体 - 改为微软雅黑 ===== */
+.game-card-title {
+  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
+}
+
+/* ===== 滚动条 ===== */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,107,157,0.3); }
+
+/* ===== 空状态 ===== */
+.empty-state {
+  text-align: center; padding: 80px 20px; color: var(--muted);
+}
+
+@media (max-width: 768px) {
+  .hero-title { font-size: 52px !important; line-height: 1 !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- 背景层 -->
+<div class="bg-grid"></div>
+<div class="bg-glow bg-glow-1"></div>
+<div class="bg-glow bg-glow-2"></div>
+<div class="bg-glow bg-glow-3"></div>
+<canvas id="particleCanvas"></canvas>
+
+<!-- 导航栏 -->
+<nav class="nav">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center gap-4 md:gap-6">
+    <div class="flex items-center gap-3 shrink-0">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-pink-300 flex items-center justify-center shadow-lg shadow-pink-500/30">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d0710" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 12h4M8 10v4"/><circle cx="15" cy="11" r="1"/><circle cx="18" cy="13" r="1"/>
+          <rect x="2" y="6" width="20" height="12" rx="6"/>
+        </svg>
+      </div>
+      <div class="hidden sm:block">
+        <div class="font-display font-bold text-lg leading-none">游戏站</div>
+        <div class="text-[10px] text-gray-500 tracking-widest mt-1">还没想好名字😓</div>
+      </div>
+    </div>
+    
+    <div class="flex-1 max-w-xl relative">
+      <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input id="searchInput" type="text" placeholder="搜索游戏名、类型..." class="search-input w-full pl-11 pr-4 py-3 rounded-xl text-sm">
+    </div>
+  </div>
+</nav>
+
+<!-- 主体 -->
+<main class="relative z-10 max-w-7xl mx-auto px-6 py-10 md:py-16">
+  
+  <!-- Hero -->
+  <section class="mb-12">
+    <div class="flex items-center gap-2 mb-5">
+      <div class="relative">
+        <div class="w-2 h-2 rounded-full bg-pink-400"></div>
+        <div class="absolute inset-0 w-2 h-2 rounded-full bg-pink-400 animate-ping"></div>
+      </div>
+      <span class="text-xs text-gray-400 tracking-widest uppercase">现已上线 · <span id="gameCount" class="text-pink-400">0</span> 款游戏</span>
+    </div>
+    <h1 class="hero-title font-display font-bold text-6xl md:text-8xl leading-[0.92] mb-6">
+      你的游戏<br>
+      <span class="hero-accent">宇宙入口</span>
+    </h1>
+    <p class="text-gray-400 text-base md:text-lg max-w-2xl">
+      精心制作的网页游戏合集
+    </p>
+  </section>
+  
+  <!-- 分类 -->
+  <section class="mb-10">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <h2 class="font-display font-bold text-xl">分类浏览</h2>
+        <div class="h-px w-12 bg-gradient-to-r from-pink-500/50 to-transparent"></div>
+      </div>
+      <div class="text-[10px] text-gray-500 tracking-widest"></div>
+    </div>
+    <div class="category-list" id="categoryList"></div>
+  </section>
+  
+  <!-- 游戏网格 -->
+  <section>
+    <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+      <div class="flex items-center gap-3">
+        <h2 class="font-display font-bold text-xl" id="resultTitle">全部游戏</h2>
+        <span class="text-xs text-gray-500" id="resultCount"></span>
+      </div>
+    </div>
+    
+    <div id="gameGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+    
+    <div id="emptyState" class="empty-state hidden">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" class="mx-auto mb-4 opacity-30">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M8 11h6"/>
+      </svg>
+      <div class="text-lg mb-2 text-gray-300">没有找到匹配的游戏</div>
+      <div class="text-sm">试试其他关键词或切换分类</div>
+    </div>
+  </section>
+  
+  <footer class="mt-20 pt-8 border-t border-white/5 flex items-center justify-between text-xs text-gray-500">
+    <span>2026 · 还没想好名字的游戏站</span>
+    <span>已经到底了哦</span>
+  </footer>
+  
+</main>
+
+<script>
+// ========================================
+// 游戏数据库 - 在这里添加你自己的游戏
+// 格式：{ name, categories, url, desc, image }
+// ========================================
+const GAMES = [
+  {
+    name: "我的世界",
+    categories: ["沙盒"],
+    url: "我的世界/index.html",
+    desc: "方块像素世界，随心创造，自由探索无限可能。",
+    image: "我的世界/image.png"
+  },
+  {
+    name: "裂痕守护者",
+    categories: ["塔防","策略"],
+    url: "裂痕守护者/index.html",
+    desc: "怪物蜂拥而至，策略布防，坚守最后的阵地。",
+    image: "裂痕守护者/image.png"
+  },
+  {
+    name: "星际弹幕射击",
+    categories: ["动作"],
+    url: "星际弹幕射击/index.html",
+    desc: "在漫天炮火中挑战高分生存极限。",
+    image: "星际弹幕射击/image.png"
+  },
+  {
+    name: "俄罗斯方块",
+    categories: ["休闲", "街机"],
+    url: "俄罗斯方块/index.html",
+    desc: "经典的方块消除，考验反应速度。",
+    image: "俄罗斯方块/image.png"
+  },
+  {
+    name: "3D贪吃蛇",
+    categories: ["休闲", "街机"],
+    url: "3D贪吃蛇/index.html",
+    desc: "身临其境的三维场景，经典不变的四方走位。",
+    image: "3D贪吃蛇/image.png"
+  },
+  {
+    name: "合成2048",
+    categories: ["策略", "休闲"],
+    url: "2048/index.html",
+    desc: "滑动数字方块，挑战智商与运气的极限",
+    image: "2048/image.png"
+  },
+  {
+    name: "扫雷大作战",
+    categories: ["策略", "休闲"],
+    url: "扫雷/index.html",
+    desc: "避开隐蔽的地雷，用逻辑推理揭开真相。",
+    image: "扫雷/image.png"
+  },
+  {
+    name: "UNO",
+    categories: ["卡牌", "休闲"],
+    url: "uno/index.html",
+    desc: "无需洗牌，随时开局。",
+    image: "uno/image.png"
+  },
+];
+
+// 所有可用分类（可按需扩展）
+const ALL_CATEGORIES = ["全部", "沙盒", "塔防", "休闲", "策略", "动作", "卡牌", "街机"];
+
+// 运行时状态
+let currentCategory = "全部";
+let currentSearch = "";
+
+// ===== 初始化 =====
+function init() {
+  initParticles();
+  renderCategories();
+  renderGames();
+  bindEvents();
+}
+
+// ===== 粒子动画系统 =====
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+let mouseX = -1000; // 初始放在屏幕外
+let mouseY = -1000;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+class Particle {
+  constructor() {
+    this.reset(true);
+  }
+  
+  reset(initial = false) {
+    this.x = Math.random() * canvas.width;
+    // 如果是初始化，在整个屏幕高度生成；否则从顶部生成
+    this.y = initial ? Math.random() * canvas.height : -10;
+    this.size = Math.random() * 2.5 + 1;
+    this.baseSpeedY = Math.random() * 0.4 + 0.1; // 缓慢下落
+    this.speedX = 0;
+    this.speedY = this.baseSpeedY;
+    this.opacity = Math.random() * 0.3 + 0.1; // 0.1 ~ 0.4 透明度很低
+    
+    // 随机选择粉色系颜色
+    const colorChoice = Math.random();
+    if (colorChoice < 0.5) {
+      this.color = '255, 107, 157'; // 樱花粉
+    } else if (colorChoice < 0.8) {
+      this.color = '255, 179, 198'; // 浅粉
+    } else {
+      this.color = '192, 132, 252'; // 淡紫粉
+    }
+    
+    // 樱花飘落摇摆参数
+    this.angle = Math.random() * Math.PI * 2;
+    this.angleSpeed = (Math.random() - 0.5) * 0.02;
+    this.swayAmount = Math.random() * 0.5 + 0.2;
+  }
+  
+  update() {
+    // 鼠标干扰排斥效果
+    const dx = this.x - mouseX;
+    const dy = this.y - mouseY;
+    const distSq = dx * dx + dy * dy;
+    const repelRadius = 120;
+    
+    if (distSq < repelRadius * repelRadius && distSq > 0) {
+      const dist = Math.sqrt(distSq);
+      const force = (repelRadius - dist) / repelRadius;
+      const angle = Math.atan2(dy, dx);
+      // 施加排斥力
+      this.speedX += Math.cos(angle) * force * 0.8;
+      this.speedY += Math.sin(angle) * force * 0.8;
+    }
+    
+    // 摩擦力，让被推开的粒子逐渐恢复
+    this.speedX *= 0.95;
+    // Y速度慢慢恢复到基础下落速度
+    this.speedY = this.speedY * 0.95 + this.baseSpeedY * 0.05;
+    
+    // 更新位置
+    this.x += this.speedX + Math.sin(this.angle) * this.swayAmount;
+    this.y += this.speedY;
+    this.angle += this.angleSpeed;
+    
+    // 如果飘出屏幕则重置
+    if (this.y > canvas.height + 10 || this.x < -20 || this.x > canvas.width + 20) {
+      this.reset(false);
+    }
+  }
+  
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${this.color}, ${this.opacity})`;
+    ctx.fill();
+  }
+}
+
+function initParticles() {
+  particles = [];
+  // 生成少量粒子（60个）
+  for (let i = 0; i < 60; i++) {
+    particles.push(new Particle());
+  }
+  
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    for (let i = 0; i < particles.length; i++) {
+      particles[i].update();
+      particles[i].draw();
+    }
+    
+    requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+// ===== 渲染分类 =====
+function renderCategories() {
+  const list = document.getElementById('categoryList');
+  
+  const categoriesWithCount = ALL_CATEGORIES.map(cat => {
+    const count = cat === "全部" 
+      ? GAMES.length 
+      : GAMES.filter(g => g.categories.includes(cat)).length;
+    return { cat, count };
+  });
+  
+  list.innerHTML = categoriesWithCount.map(({cat, count}) => `
+    <button class="category-chip px-4 py-2.5 rounded-xl text-sm font-medium ${cat === currentCategory ? 'active' : ''}" data-cat="${cat}">
+      ${cat}<span class="chip-count">${count}</span>
+    </button>
+  `).join('');
+  
+  list.querySelectorAll('.category-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentCategory = btn.dataset.cat;
+      renderCategories();
+      renderGames();
+      updateResultTitle();
+    });
+  });
+}
+
+// ===== 渲染游戏卡片 =====
+function renderGames() {
+  let filtered = GAMES.filter(g => {
+    const matchCat = currentCategory === "全部" || g.categories.includes(currentCategory);
+    const q = currentSearch.toLowerCase();
+    const matchSearch = !q ||
+      g.name.toLowerCase().includes(q) ||
+      g.categories.some(c => c.toLowerCase().includes(q)) ||
+      (g.desc && g.desc.toLowerCase().includes(q));
+    return matchCat && matchSearch;
+  });
+  
+  const grid = document.getElementById('gameGrid');
+  const empty = document.getElementById('emptyState');
+  
+  document.getElementById('resultCount').textContent = `${filtered.length} 个结果`;
+  document.getElementById('gameCount').textContent = GAMES.length;
+  
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  
+  grid.innerHTML = filtered.map((g, i) => {
+    const imgSrc = g.image || `https://picsum.photos/seed/${encodeURIComponent(g.name)}/600/400.jpg`;
+    return `
+      <a href="${g.url}" target="_blank" rel="noopener noreferrer" class="game-card group" style="animation-delay: ${Math.min(i * 60, 600)}ms">
+        <div class="game-card-image">
+          <img src="${imgSrc}" alt="${g.name}" loading="lazy">
+          <div class="play-overlay">
+            <div class="play-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#0d0710"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="p-5 flex flex-col flex-1">
+          <h3 class="game-card-title font-bold text-lg mb-1 group-hover:text-pink-400 transition-colors">${g.name}</h3>
+          <p class="text-xs text-gray-500 mb-4 line-clamp-2">${g.desc || '点击查看详情'}</p>
+          <div class="flex flex-wrap gap-1.5 mt-auto">
+            ${g.categories.slice(0, 3).map(c => `<span class="tag">${c}</span>`).join('')}
+          </div>
+        </div>
+      </a>
+    `;
+  }).join('');
+}
+
+function updateResultTitle() {
+  const title = document.getElementById('resultTitle');
+  if (currentSearch) {
+    title.textContent = `搜索: "${currentSearch}"`;
+  } else if (currentCategory === '全部') {
+    title.textContent = '全部游戏';
+  } else {
+    title.textContent = currentCategory;
+  }
+}
+
+// ===== 事件绑定 =====
+function bindEvents() {
+  const searchInput = document.getElementById('searchInput');
+  let searchTimer;
+  searchInput.addEventListener('input', (e) => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      currentSearch = e.target.value.trim();
+      renderGames();
+      updateResultTitle();
+    }, 150);
+  });
+  
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (document.activeElement === searchInput) searchInput.blur();
+    }
+  });
+  
+  // 恢复鼠标坐标更新，用于粒子排斥效果
+  document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  });
+  
+  // 卡片3D倾斜效果
+  document.addEventListener('mousemove', (e) => {
+    const card = e.target.closest('.game-card');
+    if (card) {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const rotateX = (y - centerY) / 35;
+      const rotateY = (centerX - x) / 35;
+      card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-6px)`;
+    }
+  });
+  
+  document.addEventListener('mouseout', (e) => {
+    const card = e.target.closest('.game-card');
+    if (card && !card.contains(e.relatedTarget)) {
+      card.style.transform = '';
+    }
+  });
+  
+  document.getElementById('gameGrid').addEventListener('mouseleave', () => {
+    document.querySelectorAll('.game-card').forEach(c => c.style.transform = '');
+  }, true);
+}
+
+// 启动
+init();
+</script>
+</body>
+</html>

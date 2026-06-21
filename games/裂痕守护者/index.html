@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>裂痕守护者</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a;
+  --fg:#f0e6d2;
+  --muted:#8a8580;
+  --accent:#ffa726;
+  --accent2:#1de9b6;
+  --danger:#ff3d00;
+  --gold:#ffd54f;
+  --card:rgba(15,20,35,0.88);
+  --border:rgba(255,167,38,0.35);
+}
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--fg)}
+#canvas-container{position:fixed;inset:0;z-index:0}
+canvas{display:block}
+
+/* === 通用覆盖层 === */
+.overlay{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at center,rgba(10,14,26,0.7) 0%,rgba(10,14,26,0.95) 100%);
+  backdrop-filter:blur(8px)}
+.overlay.hidden{display:none}
+
+/* === 主菜单 === */
+.menu-content{text-align:center;max-width:760px;padding:40px;position:relative}
+.menu-content::before{content:'';position:absolute;inset:-2px;
+  background:linear-gradient(135deg,transparent 30%,rgba(255,167,38,0.1) 50%,transparent 70%);
+  pointer-events:none;animation:shimmer 8s linear infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+.title-block{margin-bottom:30px}
+h1{font-family:'Cinzel',serif;font-size:clamp(48px,8vw,96px);font-weight:900;letter-spacing:8px;
+  background:linear-gradient(180deg,#ffe7b3 0%,#ffa726 50%,#c67000 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  text-shadow:0 0 60px rgba(255,167,38,0.3);line-height:1}
+.subtitle{font-family:'Cinzel',serif;font-size:16px;letter-spacing:12px;color:var(--accent2);
+  margin-top:8px;opacity:0.85}
+.story{font-size:17px;line-height:1.8;color:#c8c0b0;margin:30px 0;
+  padding:20px 24px;background:rgba(255,167,38,0.05);border-left:3px solid var(--accent);
+  text-align:left}
+.story p{margin-bottom:10px}
+.story p:last-child{margin-bottom:0;color:var(--accent2);font-style:italic}
+
+.btn{font-family:'Cinzel',serif;font-size:18px;font-weight:700;letter-spacing:4px;
+  padding:14px 42px;background:linear-gradient(180deg,rgba(255,167,38,0.15),rgba(255,167,38,0.05));
+  border:1.5px solid var(--accent);color:var(--accent);cursor:pointer;
+  position:relative;transition:all 0.3s;overflow:hidden;text-transform:uppercase}
+.btn::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(255,167,38,0.3),rgba(255,167,38,0.1));
+  transform:translateY(100%);transition:transform 0.3s}
+.btn:hover{color:#fff;box-shadow:0 0 30px rgba(255,167,38,0.5),inset 0 0 20px rgba(255,167,38,0.2)}
+.btn:hover::before{transform:translateY(0)}
+.btn span{position:relative;z-index:1}
+.btn-secondary{border-color:var(--accent2);color:var(--accent2)}
+.btn-secondary::before{background:linear-gradient(180deg,rgba(29,233,182,0.3),rgba(29,233,182,0.1))}
+.btn-secondary:hover{box-shadow:0 0 30px rgba(29,233,182,0.5),inset 0 0 20px rgba(29,233,182,0.2)}
+
+.btn-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+
+/* === 关卡选择 === */
+.level-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;
+  max-width:960px;margin-top:30px;max-height:55vh;overflow-y:auto;padding:4px}
+.level-card{padding:20px;background:var(--card);border:1px solid var(--border);cursor:pointer;
+  transition:all 0.3s;position:relative;overflow:hidden;min-height:180px}
+.level-card:hover{transform:translateY(-4px);border-color:var(--accent);
+  box-shadow:0 10px 40px rgba(255,167,38,0.2)}
+.level-card.locked{opacity:0.4;cursor:not-allowed}
+.level-card.locked:hover{transform:none;box-shadow:none}
+.level-num{font-family:'Cinzel',serif;font-size:12px;color:var(--accent2);letter-spacing:3px}
+.level-name{font-family:'Cinzel',serif;font-size:20px;font-weight:700;margin:6px 0 3px;color:var(--fg)}
+.level-sub{font-size:12px;color:var(--muted);margin-bottom:10px}
+.level-info{font-size:12px;color:#c8c0b0;line-height:1.4}
+.level-preview{height:60px;margin-bottom:12px;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#1a1f30,#0f1420);border-radius:4px}
+.preview-1{background:linear-gradient(135deg,#4a7c3a,#2d5028)}
+.preview-2{background:linear-gradient(135deg,#c9923d,#7a5520)}
+.preview-3{background:linear-gradient(135deg,#8b1a1a,#2a0808)}
+.preview-4{background:linear-gradient(135deg,#b0d8f0,#3a6080)}
+.preview-5{background:linear-gradient(135deg,#3a5a2a,#1a2a10)}
+.preview-6{background:linear-gradient(135deg,#b088c8,#4a3060)}
+.preview-7{background:linear-gradient(135deg,#6a8090,#2a3a50)}
+.preview-8{background:linear-gradient(135deg,#4a1a6a,#1a0a2a)}
+.preview-9{background:linear-gradient(135deg,#c8a050,#5a3a1a)}
+.preview-10{background:linear-gradient(135deg,#1a0000,#0a0000);box-shadow:inset 0 0 20px rgba(255,20,0,0.3)}
+
+/* === HUD === */
+#hud{position:fixed;inset:0;z-index:50;pointer-events:none}
+#hud.hidden{display:none}
+.hud-top{position:absolute;top:20px;left:50%;transform:translateX(-50%);
+  display:flex;gap:8px;background:var(--card);padding:10px 20px;
+  border:1px solid var(--border);pointer-events:auto;
+  backdrop-filter:blur(10px);clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,12px 100%,0 50%)}
+.hud-stat{display:flex;align-items:center;gap:8px;padding:0 16px;
+  font-family:'Cinzel',serif;font-size:18px;font-weight:700}
+.hud-stat:not(:last-child){border-right:1px solid rgba(255,167,38,0.2)}
+.stat-icon{width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.stat-icon svg{width:100%;height:100%}
+#gold-val{color:var(--gold)}
+#lives-val{color:var(--danger)}
+#wave-val{color:var(--accent2)}
+
+.hud-right{position:absolute;top:20px;right:20px;display:flex;gap:8px;pointer-events:auto}
+.hud-btn{width:44px;height:44px;background:var(--card);border:1px solid var(--border);
+  color:var(--fg);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;backdrop-filter:blur(10px)}
+.hud-btn:hover{border-color:var(--accent);color:var(--accent)}
+.hud-btn svg{width:20px;height:20px}
+
+.tower-bar{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+  display:flex;gap:10px;background:var(--card);padding:12px;
+  border:1px solid var(--border);pointer-events:auto;backdrop-filter:blur(10px)}
+.tower-btn{width:72px;height:88px;background:rgba(255,255,255,0.03);
+  border:1.5px solid rgba(255,167,38,0.2);cursor:pointer;position:relative;
+  transition:all 0.2s;display:flex;flex-direction:column;align-items:center;
+  justify-content:space-between;padding:6px}
+.tower-btn:hover{border-color:var(--accent);background:rgba(255,167,38,0.1);transform:translateY(-3px)}
+.tower-btn.selected{border-color:var(--accent);background:rgba(255,167,38,0.15);
+  box-shadow:0 0 20px rgba(255,167,38,0.4)}
+.tower-btn.unaffordable{opacity:0.4;pointer-events:none}
+.tower-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center}
+.tower-icon svg{width:100%;height:100%}
+.tower-name{font-size:11px;color:var(--fg);font-weight:600}
+.tower-cost{font-size:11px;color:var(--gold);font-weight:700;
+  font-family:'Cinzel',serif;display:flex;align-items:center;gap:2px}
+
+#tower-panel{position:absolute;right:20px;top:80px;width:240px;background:var(--card);
+  border:1px solid var(--border);padding:16px;pointer-events:auto;
+  backdrop-filter:blur(10px);transform:translateX(280px);transition:transform 0.3s}
+#tower-panel.show{transform:translateX(0)}
+.tp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.tp-name{font-family:'Cinzel',serif;font-size:18px;font-weight:700;color:var(--accent)}
+.tp-level{font-size:12px;color:var(--accent2);padding:2px 8px;
+  border:1px solid var(--accent2);border-radius:2px}
+.tp-close{width:24px;height:24px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;color:var(--muted);transition:color 0.2s}
+.tp-close:hover{color:var(--danger)}
+.tp-stats{font-size:13px;line-height:1.8;margin-bottom:14px}
+.tp-stat{display:flex;justify-content:space-between}
+.tp-stat-val{color:var(--accent2);font-weight:600}
+.tp-upgrade{font-size:12px;color:var(--muted);margin-bottom:14px;
+  padding:8px;background:rgba(255,255,255,0.03);border-left:2px solid var(--accent2)}
+.tp-actions{display:flex;gap:8px}
+.tp-btn{flex:1;padding:8px;background:rgba(255,167,38,0.1);border:1px solid var(--accent);
+  color:var(--accent);cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:600;
+  font-size:13px;transition:all 0.2s}
+.tp-btn:hover:not(:disabled){background:rgba(255,167,38,0.2);color:#fff}
+.tp-btn:disabled{opacity:0.4;cursor:not-allowed}
+.tp-btn.sell{border-color:var(--danger);color:var(--danger);background:rgba(255,61,0,0.1)}
+.tp-btn.sell:hover{background:rgba(255,61,0,0.2);color:#fff}
+
+#wave-control{position:absolute;bottom:130px;left:50%;transform:translateX(-50%);
+  pointer-events:auto;display:flex;align-items:center;gap:12px}
+.start-wave-btn{font-family:'Cinzel',serif;font-size:14px;font-weight:700;letter-spacing:3px;
+  padding:10px 28px;background:linear-gradient(180deg,rgba(29,233,182,0.2),rgba(29,233,182,0.05));
+  border:1.5px solid var(--accent2);color:var(--accent2);cursor:pointer;
+  transition:all 0.3s;position:relative;overflow:hidden}
+.start-wave-btn:hover{color:#fff;box-shadow:0 0 30px rgba(29,233,182,0.5)}
+.start-wave-btn:disabled{opacity:0.4;cursor:not-allowed}
+.wave-info{font-size:13px;color:var(--muted);background:var(--card);padding:8px 14px;
+  border:1px solid var(--border)}
+
+#loading{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);flex-direction:column;gap:20px}
+.loading-text{font-family:'Cinzel',serif;font-size:14px;letter-spacing:6px;color:var(--accent)}
+.loading-bar{width:240px;height:2px;background:rgba(255,167,38,0.2);overflow:hidden}
+.loading-fill{height:100%;background:var(--accent);width:0;transition:width 0.3s;
+  box-shadow:0 0 10px var(--accent)}
+
+#toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);
+  z-index:150;padding:12px 24px;background:var(--card);border:1px solid var(--danger);
+  color:var(--danger);font-size:14px;opacity:0;transition:all 0.3s;pointer-events:none;
+  backdrop-filter:blur(10px)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.modal-content{max-width:540px;padding:40px;text-align:center;background:var(--card);
+  border:1px solid var(--border);position:relative}
+.modal-content::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.modal-title{font-family:'Cinzel',serif;font-size:36px;font-weight:900;margin-bottom:8px;
+  letter-spacing:4px}
+.modal-title.win{color:var(--accent2);text-shadow:0 0 30px rgba(29,233,182,0.5)}
+.modal-title.lose{color:var(--danger);text-shadow:0 0 30px rgba(255,61,0,0.5)}
+.modal-sub{font-size:14px;color:var(--muted);margin-bottom:20px;letter-spacing:2px}
+.modal-text{font-size:15px;line-height:1.7;color:#c8c0b0;margin-bottom:24px}
+.modal-stats{display:flex;justify-content:center;gap:24px;margin-bottom:24px}
+.modal-stat{text-align:center}
+.modal-stat-val{font-family:'Cinzel',serif;font-size:28px;font-weight:700;color:var(--accent)}
+.modal-stat-lbl{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+
+#story-modal .modal-content{max-width:680px;text-align:left}
+.story-chapter{font-family:'Cinzel',serif;font-size:14px;color:var(--accent2);
+  letter-spacing:6px;margin-bottom:8px}
+.story-title{font-family:'Cinzel',serif;font-size:32px;font-weight:700;margin-bottom:20px;
+  color:var(--accent);letter-spacing:3px}
+.story-body{font-size:15px;line-height:1.9;color:#d8d0c0;margin-bottom:24px}
+.story-body p{margin-bottom:12px}
+
+#range-overlay{position:fixed;inset:0;z-index:10;pointer-events:none}
+
+@media (max-width:768px){
+  .tower-bar{padding:8px;gap:6px}
+  .tower-btn{width:60px;height:78px}
+  #tower-panel{width:200px;right:10px}
+  h1{font-size:48px;letter-spacing:4px}
+  .level-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;max-height:50vh}
+  .level-card{padding:14px;min-height:140px}
+  .level-name{font-size:16px}
+}
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+<canvas id="range-overlay"></canvas>
+
+<div id="loading">
+  <div class="loading-text">SUMMONING THE RIFT</div>
+  <div class="loading-bar"><div class="loading-fill" id="loading-fill"></div></div>
+</div>
+
+<div id="main-menu" class="overlay">
+  <div class="menu-content">
+    <div class="title-block">
+      <h1>裂痕守护者</h1>
+      <div class="subtitle">RIFT GUARDIAN</div>
+    </div>
+    <div class="story">
+      <p>远古之时，世界由四块元素水晶维系平衡——翡翠、烈焰、寒冰、雷霆。</p>
+      <p>但虚无之主撕开了时空的裂隙，扭曲生物正从裂缝中涌出，吞噬一切光明。</p>
+      <p>你是最后的守护者。在裂痕之处建造防御之塔，绝不让黑暗触及世界之心。</p>
+      <p>——守护者，时光将铭记你的名字。</p>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="start-btn"><span>开始守护</span></button>
+    </div>
+  </div>
+</div>
+
+<div id="level-select" class="overlay hidden">
+  <div class="menu-content">
+    <div class="title-block">
+      <h1 style="font-size:48px">选择战场</h1>
+      <div class="subtitle">CHOOSE YOUR BATTLEFIELD</div>
+    </div>
+    <div class="level-grid" id="level-grid"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="back-to-menu"><span>返回</span></button>
+    </div>
+  </div>
+</div>
+
+<div id="hud" class="hidden">
+  <div class="hud-top">
+    <div class="hud-stat">
+      <span class="stat-icon"><svg viewBox="0 0 24 24" fill="#ffd54f"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg></span>
+      <span id="gold-val">200</span>
+    </div>
+    <div class="hud-stat">
+      <span class="stat-icon"><svg viewBox="0 0 24 24" fill="#ff3d00"><path d="M12 21s-7-4.5-9.5-9C0 7 4 3 7 3c2 0 4 1 5 3 1-2 3-3 5-3 3 0 7 4 4.5 9C19 16.5 12 21 12 21z"/></svg></span>
+      <span id="lives-val">20</span>
+    </div>
+    <div class="hud-stat">
+      <span class="stat-icon"><svg viewBox="0 0 24 24" fill="#1de9b6"><path d="M12 2L3 7v6c0 5 4 9 9 10 5-1 9-5 9-10V7l-9-5z"/></svg></span>
+      <span id="wave-val">0/10</span>
+    </div>
+  </div>
+  <div class="hud-right">
+    <button class="hud-btn" id="speed-btn" title="加速"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 5v14l8-7L4 5zm8 0v14l8-7-8-7z"/></svg></button>
+    <button class="hud-btn" id="pause-btn" title="暂停"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg></button>
+    <button class="hud-btn" id="quit-btn" title="退出"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z"/></svg></button>
+  </div>
+  <div id="wave-control">
+    <div class="wave-info" id="wave-info-text">准备就绪</div>
+    <button class="start-wave-btn" id="start-wave-btn">下一波次</button>
+  </div>
+  <div class="tower-bar" id="tower-bar"></div>
+  <div id="tower-panel">
+    <div class="tp-header">
+      <div><div class="tp-name" id="tp-name">箭塔</div><div class="tp-level" id="tp-level">LV.1</div></div>
+      <div class="tp-close" id="tp-close"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z"/></svg></div>
+    </div>
+    <div class="tp-stats">
+      <div class="tp-stat"><span>伤害</span><span class="tp-stat-val" id="tp-damage">15</span></div>
+      <div class="tp-stat"><span>射程</span><span class="tp-stat-val" id="tp-range">8.0</span></div>
+      <div class="tp-stat"><span>射速</span><span class="tp-stat-val" id="tp-rate">1.0</span></div>
+    </div>
+    <div class="tp-upgrade" id="tp-upgrade-info">升级费用: 50</div>
+    <div class="tp-actions">
+      <button class="tp-btn" id="tp-upgrade-btn">升级</button>
+      <button class="tp-btn sell" id="tp-sell-btn">出售</button>
+    </div>
+  </div>
+</div>
+
+<div id="story-modal" class="overlay hidden">
+  <div class="modal-content">
+    <div class="story-chapter" id="story-chapter">CHAPTER I</div>
+    <div class="story-title" id="story-title">异变的前兆</div>
+    <div class="story-body" id="story-body"></div>
+    <div class="btn-row"><button class="btn" id="story-continue"><span>开始战斗</span></button></div>
+  </div>
+</div>
+
+<div id="result-modal" class="overlay hidden">
+  <div class="modal-content">
+    <div class="modal-title" id="result-title">胜利</div>
+    <div class="modal-sub" id="result-sub">VICTORY</div>
+    <div class="modal-text" id="result-text"></div>
+    <div class="modal-stats">
+      <div class="modal-stat"><div class="modal-stat-val" id="result-kills">0</div><div class="modal-stat-lbl">击杀</div></div>
+      <div class="modal-stat"><div class="modal-stat-val" id="result-gold">0</div><div class="modal-stat-lbl">金币</div></div>
+      <div class="modal-stat"><div class="modal-stat-val" id="result-waves">0</div><div class="modal-stat-lbl">波次</div></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="result-menu"><span>主菜单</span></button>
+      <button class="btn" id="result-next"><span>继续</span></button>
+    </div>
+  </div>
+</div>
+
+<div id="pause-modal" class="overlay hidden">
+  <div class="modal-content">
+    <div class="modal-title" style="color:var(--accent2)">已暂停</div>
+    <div class="modal-sub">PAUSED</div>
+    <div class="btn-row" style="margin-top:20px"><button class="btn" id="resume-btn"><span>继续</span></button></div>
+    <div class="btn-row"><button class="btn btn-secondary" id="pause-menu-btn"><span>主菜单</span></button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ==================== 配置数据 ====================
+const TOWER_TYPES = {
+  arrow:{name:'箭塔',cost:50,color:0x8b5a2b,accent:0xffa726,range:8,damage:15,fireRate:1.2,projSpeed:30,desc:'单体远程攻击',upgrades:[{cost:60,damage:28,range:9,fireRate:1.4},{cost:120,damage:50,range:10,fireRate:1.6}]},
+  cannon:{name:'炮塔',cost:120,color:0x4a4a4a,accent:0xff3d00,range:6,damage:45,fireRate:0.6,projSpeed:18,aoe:2.2,desc:'范围爆炸伤害',upgrades:[{cost:140,damage:75,range:7,fireRate:0.7,aoe:2.6},{cost:280,damage:130,range:8,fireRate:0.8,aoe:3.0}]},
+  frost:{name:'冰塔',cost:90,color:0x4fc3f7,accent:0xb3e5fc,range:5.5,damage:8,fireRate:1.5,projSpeed:20,slow:0.5,slowDur:2,desc:'减速敌人',upgrades:[{cost:100,damage:14,range:6.5,fireRate:1.7,slow:0.6},{cost:200,damage:24,range:7.5,fireRate:2.0,slow:0.7}]},
+  lightning:{name:'雷电塔',cost:180,color:0xffeb3b,accent:0xfff59d,range:7,damage:35,fireRate:0.9,chains:3,chainRange:4,desc:'链式闪电',upgrades:[{cost:200,damage:55,range:8,fireRate:1.0,chains:4},{cost:400,damage:95,range:9,fireRate:1.2,chains:5}]},
+  poison:{name:'毒塔',cost:100,color:0x76ff03,accent:0xccff90,range:5,damage:6,fireRate:1.3,projSpeed:15,dot:4,dotDur:4,desc:'持续毒素伤害',upgrades:[{cost:110,damage:10,range:6,fireRate:1.5,dot:7},{cost:220,damage:18,range:7,fireRate:1.7,dot:12}]},
+  laser:{name:'激光塔',cost:220,color:0xe91e63,accent:0xf8bbd0,range:9,damage:2.5,fireRate:30,continuous:true,desc:'持续光束',upgrades:[{cost:240,damage:4.5,range:10,fireRate:35},{cost:480,damage:8,range:11,fireRate:40}]}
+};
+
+const ENEMY_TYPES = {
+  grunt:{name:'爬行者',hp:60,speed:2.2,gold:6,color:0x8b0000,size:0.55,damage:1},
+  runner:{name:'疾跑者',hp:35,speed:4.5,gold:5,color:0xff6f00,size:0.4,damage:1},
+  tank:{name:'重装兵',hp:280,speed:1.3,gold:18,color:0x37474f,size:0.85,damage:2,armored:true},
+  flyer:{name:'飞行者',hp:80,speed:3.2,gold:10,color:0x9c27b0,size:0.5,damage:1,flying:true},
+  boss:{name:'虚无巨像',hp:2200,speed:1.5,gold:200,color:0x1a1a1a,size:1.4,damage:5,boss:true},
+  elite:{name:'精英兵',hp:130,speed:3.0,gold:14,color:0x8b1a1a,size:0.7,damage:2,armored:true},
+  wraith:{name:'幽灵',hp:45,speed:5.5,gold:9,color:0x6a2a8a,size:0.45,damage:1,flying:true},
+  titan:{name:'泰坦',hp:650,speed:0.9,gold:40,color:0x1a1a2a,size:1.2,damage:4,armored:true}
+};
+
+const CHAPTER_ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X'];
+
+const LEVELS = [
+  // 第1关 - 翡翠草原
+  {
+    name:'翡翠草原',subtitle:'第一章 · 异变的前兆',chapter:'CHAPTER I',chapterTitle:'异变的前兆',
+    story:['虚无裂隙首次在翡翠草原上撕开。村民们惊恐地看见，扭曲的生物从扭曲的光缝中爬出，朝世界之心水晶涌去。','守护者，你的第一道防线在此。建造你的塔，让黑暗止步于此。'],
+    groundColor:0x4a7c3a,pathColor:0x8b6f3a,fogColor:0xa8c5a0,skyTop:0x88aacc,skyBottom:0xc8e0c0,lightColor:0xfff4d6,lightIntensity:1.3,ambient:0x6a8a5a,decorations:'forest',
+    path:[new THREE.Vector3(-32,0,-12),new THREE.Vector3(-12,0,-12),new THREE.Vector3(-12,0,8),new THREE.Vector3(8,0,8),new THREE.Vector3(8,0,-14),new THREE.Vector3(28,0,-14),new THREE.Vector3(28,0,12),new THREE.Vector3(38,0,12)],
+    startGold:250,startLives:20,
+    waves:[[{type:'grunt',count:8,delay:1.2}],[{type:'grunt',count:6,delay:1.0},{type:'runner',count:4,delay:0.6}],[{type:'runner',count:10,delay:0.5}],[{type:'grunt',count:8,delay:0.8},{type:'tank',count:2,delay:2.5}],[{type:'flyer',count:6,delay:0.8}],[{type:'grunt',count:10,delay:0.7},{type:'runner',count:6,delay:0.5}],[{type:'tank',count:4,delay:2.0}],[{type:'flyer',count:8,delay:0.7},{type:'runner',count:8,delay:0.4}],[{type:'grunt',count:14,delay:0.6},{type:'tank',count:3,delay:1.8}],[{type:'boss',count:1,delay:0},{type:'grunt',count:8,delay:1.0}]]
+  },
+  // 第2关 - 暮色荒漠
+  {
+    name:'暮色荒漠',subtitle:'第二章 · 沙暴中的阴影',chapter:'CHAPTER II',chapterTitle:'沙暴中的阴影',
+    story:['草原之后，虚无之力蔓延至荒漠。古老的沙暴中传来低语，沙下的亡魂被裂隙唤醒。','在这片被夕阳染红的土地上，更强大的敌人正在逼近。'],
+    groundColor:0xc9923d,pathColor:0x5a3a1a,fogColor:0xe8a060,skyTop:0x6a3a20,skyBottom:0xff8040,lightColor:0xff8030,lightIntensity:1.1,ambient:0x8a5030,decorations:'desert',
+    path:[new THREE.Vector3(-35,0,0),new THREE.Vector3(-20,0,0),new THREE.Vector3(-20,0,-15),new THREE.Vector3(0,0,-15),new THREE.Vector3(0,0,15),new THREE.Vector3(20,0,15),new THREE.Vector3(20,0,-10),new THREE.Vector3(38,0,-10)],
+    startGold:300,startLives:20,
+    waves:[[{type:'grunt',count:10,delay:1.0},{type:'runner',count:6,delay:0.5}],[{type:'runner',count:14,delay:0.4}],[{type:'tank',count:4,delay:1.8},{type:'flyer',count:5,delay:0.8}],[{type:'grunt',count:14,delay:0.6},{type:'runner',count:8,delay:0.4}],[{type:'flyer',count:12,delay:0.6}],[{type:'tank',count:6,delay:1.5},{type:'grunt',count:10,delay:0.7}],[{type:'runner',count:20,delay:0.3}],[{type:'flyer',count:10,delay:0.5},{type:'tank',count:5,delay:1.5}],[{type:'boss',count:1,delay:0},{type:'tank',count:4,delay:2.0},{type:'flyer',count:6,delay:1.0}]]
+  },
+  // 第3关 - 熔岩深渊
+  {
+    name:'熔岩深渊',subtitle:'第三章 · 虚无之主',chapter:'CHAPTER III',chapterTitle:'虚无之主',
+    story:['最终战场在熔岩深渊。虚无之主的本体正在裂隙深处苏醒，岩浆为它沸腾。','这是最后的战役。若此地失守，世界之心将坠入虚无。守护者，倾尽所有！'],
+    groundColor:0x3a1010,pathColor:0x1a0808,fogColor:0x4a1010,skyTop:0x1a0505,skyBottom:0x8b0000,lightColor:0xff4020,lightIntensity:1.0,ambient:0x5a1010,decorations:'lava',
+    path:[new THREE.Vector3(-32,0,-14),new THREE.Vector3(-14,0,-14),new THREE.Vector3(-14,0,14),new THREE.Vector3(0,0,14),new THREE.Vector3(0,0,-14),new THREE.Vector3(14,0,-14),new THREE.Vector3(14,0,14),new THREE.Vector3(32,0,14)],
+    startGold:350,startLives:25,
+    waves:[[{type:'grunt',count:12,delay:0.7},{type:'runner',count:8,delay:0.4}],[{type:'tank',count:5,delay:1.5},{type:'flyer',count:8,delay:0.6}],[{type:'runner',count:20,delay:0.3}],[{type:'flyer',count:14,delay:0.5},{type:'tank',count:4,delay:1.5}],[{type:'grunt',count:18,delay:0.5},{type:'runner',count:10,delay:0.4}],[{type:'tank',count:8,delay:1.2}],[{type:'flyer',count:16,delay:0.4},{type:'runner',count:12,delay:0.3}],[{type:'grunt',count:20,delay:0.4},{type:'tank',count:6,delay:1.0},{type:'flyer',count:8,delay:0.6}],[{type:'boss',count:2,delay:3.0},{type:'tank',count:5,delay:1.5}]]
+  },
+  // 第4关 - 冰封山脉
+  {
+    name:'冰封山脉',subtitle:'第四章 · 冰霜之息',chapter:'CHAPTER IV',chapterTitle:'冰霜之息',
+    story:['虚无之力侵入了北境的冰封山脉。寒风裹挟着黑暗，将沉睡的远古生物从冰川中唤醒。','在这片银白世界中，寒冰与黑暗交织。守护者，让你的火焰在这冰雪中燃烧。'],
+    groundColor:0xc8d8e8,pathColor:0x6a8a9a,fogColor:0xd0e0f0,skyTop:0x8899bb,skyBottom:0xe0e8f0,lightColor:0xe8f0ff,lightIntensity:1.2,ambient:0x7a8a9a,decorations:'snow',
+    path:[new THREE.Vector3(-34,0,-8),new THREE.Vector3(-18,0,-8),new THREE.Vector3(-18,0,16),new THREE.Vector3(-2,0,16),new THREE.Vector3(-2,0,-16),new THREE.Vector3(14,0,-16),new THREE.Vector3(14,0,14),new THREE.Vector3(30,0,14),new THREE.Vector3(30,0,-6),new THREE.Vector3(38,0,-6)],
+    startGold:320,startLives:22,
+    waves:[[{type:'grunt',count:14,delay:0.8},{type:'runner',count:8,delay:0.5}],[{type:'runner',count:16,delay:0.35}],[{type:'tank',count:5,delay:1.6},{type:'flyer',count:7,delay:0.7}],[{type:'elite',count:3,delay:2.0},{type:'grunt',count:10,delay:0.6}],[{type:'flyer',count:14,delay:0.5}],[{type:'tank',count:7,delay:1.3},{type:'runner',count:10,delay:0.4}],[{type:'elite',count:5,delay:1.8},{type:'flyer',count:8,delay:0.6}],[{type:'grunt',count:20,delay:0.5},{type:'tank',count:6,delay:1.2}],[{type:'boss',count:1,delay:0},{type:'elite',count:6,delay:1.5},{type:'runner',count:10,delay:0.4}]]
+  },
+  // 第5关 - 幽暗沼泽
+  {
+    name:'幽暗沼泽',subtitle:'第五章 · 腐化的蔓延',chapter:'CHAPTER V',chapterTitle:'腐化的蔓延',
+    story:['虚无的腐化渗入了南方的沼泽。扭曲的藤蔓从裂隙中爬出，毒雾弥漫，生灵异变。','在这片腐烂之地，毒素与黑暗共生。守护者，小心脚下——也小心天空。'],
+    groundColor:0x3a5a2a,pathColor:0x2a3a1a,fogColor:0x4a6a3a,skyTop:0x2a3a20,skyBottom:0x5a7a3a,lightColor:0xd0e0b0,lightIntensity:0.9,ambient:0x3a5a2a,decorations:'swamp',
+    path:[new THREE.Vector3(-30,0,-18),new THREE.Vector3(-10,0,-18),new THREE.Vector3(-10,0,-2),new THREE.Vector3(10,0,-2),new THREE.Vector3(10,0,18),new THREE.Vector3(-10,0,18),new THREE.Vector3(-10,0,8),new THREE.Vector3(22,0,8),new THREE.Vector3(22,0,-10),new THREE.Vector3(38,0,-10)],
+    startGold:340,startLives:24,
+    waves:[[{type:'grunt',count:12,delay:0.7},{type:'runner',count:10,delay:0.4}],[{type:'flyer',count:10,delay:0.6},{type:'grunt',count:8,delay:0.7}],[{type:'tank',count:6,delay:1.4},{type:'runner',count:8,delay:0.4}],[{type:'elite',count:4,delay:1.8},{type:'flyer',count:6,delay:0.6}],[{type:'wraith',count:6,delay:0.7},{type:'grunt',count:10,delay:0.5}],[{type:'tank',count:8,delay:1.2},{type:'elite',count:4,delay:1.6}],[{type:'flyer',count:16,delay:0.4},{type:'wraith',count:8,delay:0.5}],[{type:'runner',count:22,delay:0.25},{type:'tank',count:5,delay:1.5}],[{type:'boss',count:1,delay:0},{type:'wraith',count:10,delay:0.5},{type:'elite',count:6,delay:1.3}]]
+  },
+  // 第6关 - 水晶洞窟
+  {
+    name:'水晶洞窟',subtitle:'第六章 · 地底的闪光',chapter:'CHAPTER VI',chapterTitle:'地底的闪光',
+    story:['深入地下，水晶洞窟中闪烁着诡异的光芒。虚无之力扭曲了水晶的能量，使其变成了致命的陷阱。','守护者，这里的能量异常充沛——好好利用，但也警惕被腐化的水晶生物。'],
+    groundColor:0x5a4080,pathColor:0x3a2a50,fogColor:0x6a5090,skyTop:0x2a1a4a,skyBottom:0x7a60a0,lightColor:0xd0b0f0,lightIntensity:1.0,ambient:0x4a3070,decorations:'crystal',
+    path:[new THREE.Vector3(-30,0,0),new THREE.Vector3(-14,0,0),new THREE.Vector3(-14,0,-16),new THREE.Vector3(2,0,-16),new THREE.Vector3(2,0,16),new THREE.Vector3(-8,0,16),new THREE.Vector3(-8,0,4),new THREE.Vector3(18,0,4),new THREE.Vector3(18,0,-12),new THREE.Vector3(36,0,-12)],
+    startGold:380,startLives:26,
+    waves:[[{type:'grunt',count:14,delay:0.6},{type:'runner',count:10,delay:0.4}],[{type:'elite',count:5,delay:1.5},{type:'grunt',count:8,delay:0.6}],[{type:'flyer',count:12,delay:0.5},{type:'wraith',count:4,delay:0.6}],[{type:'tank',count:7,delay:1.3},{type:'elite',count:6,delay:1.4}],[{type:'wraith',count:10,delay:0.5},{type:'runner',count:12,delay:0.3}],[{type:'flyer',count:16,delay:0.4},{type:'tank',count:6,delay:1.2}],[{type:'elite',count:8,delay:1.2},{type:'grunt',count:16,delay:0.5}],[{type:'boss',count:1,delay:0},{type:'wraith',count:8,delay:0.5},{type:'elite',count:6,delay:1.0}],[{type:'titan',count:2,delay:3.0},{type:'tank',count:6,delay:1.5},{type:'flyer',count:8,delay:0.6}]]
+  },
+  // 第7关 - 风暴高地
+  {
+    name:'风暴高地',subtitle:'第七章 · 雷霆之怒',chapter:'CHAPTER VII',chapterTitle:'雷霆之怒',
+    story:['风暴高地上空，永恒的风暴因虚无之力变得更加狂暴。闪电不断劈下，而裂隙中涌出的生物似乎吸收了雷电的力量。','守护者，这里的元素能量极为混乱。但混乱之中，也蕴含着力量——善用雷电之塔。'],
+    groundColor:0x5a5a6a,pathColor:0x3a3a4a,fogColor:0x6a6a7a,skyTop:0x2a2a3a,skyBottom:0x7a8a9a,lightColor:0xd0d0e0,lightIntensity:1.05,ambient:0x4a4a5a,decorations:'storm',
+    path:[new THREE.Vector3(-34,0,10),new THREE.Vector3(-18,0,10),new THREE.Vector3(-18,0,-10),new THREE.Vector3(-2,0,-10),new THREE.Vector3(-2,0,16),new THREE.Vector3(10,0,16),new THREE.Vector3(10,0,-16),new THREE.Vector3(22,0,-16),new THREE.Vector3(22,0,10),new THREE.Vector3(38,0,10)],
+    startGold:400,startLives:28,
+    waves:[[{type:'grunt',count:16,delay:0.6},{type:'runner',count:12,delay:0.35}],[{type:'elite',count:6,delay:1.4},{type:'flyer',count:8,delay:0.5}],[{type:'tank',count:8,delay:1.2},{type:'wraith',count:6,delay:0.5}],[{type:'runner',count:24,delay:0.25}],[{type:'elite',count:8,delay:1.2},{type:'flyer',count:12,delay:0.4}],[{type:'tank',count:10,delay:1.1},{type:'wraith',count:8,delay:0.45}],[{type:'grunt',count:22,delay:0.4},{type:'elite',count:8,delay:1.1}],[{type:'boss',count:1,delay:0},{type:'titan',count:1,delay:4.0},{type:'flyer',count:12,delay:0.5}],[{type:'wraith',count:14,delay:0.4},{type:'elite',count:10,delay:1.0},{type:'tank',count:6,delay:1.3}]]
+  },
+  // 第8关 - 虚空裂隙
+  {
+    name:'虚空裂隙',subtitle:'第八章 · 虚空之触',chapter:'CHAPTER VIII',chapterTitle:'虚空之触',
+    story:['裂隙本身已经扩大到了肉眼可见的程度。虚空的力量扭曲了周围的空间，现实在此处变得脆弱。','守护者，你正站在虚无的边缘。此处的敌人将比以往任何时候都更加疯狂——也更加危险。'],
+    groundColor:0x2a1a3a,pathColor:0x1a0a2a,fogColor:0x3a2a4a,skyTop:0x0a0a1a,skyBottom:0x3a1a5a,lightColor:0xc0a0e0,lightIntensity:0.85,ambient:0x2a1a3a,decorations:'void',
+    path:[new THREE.Vector3(-32,0,-16),new THREE.Vector3(-16,0,-16),new THREE.Vector3(-16,0,0),new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-18),new THREE.Vector3(16,0,-18),new THREE.Vector3(16,0,0),new THREE.Vector3(8,0,0),new THREE.Vector3(8,0,16),new THREE.Vector3(28,0,16),new THREE.Vector3(28,0,-4),new THREE.Vector3(38,0,-4)],
+    startGold:430,startLives:30,
+    waves:[[{type:'grunt',count:18,delay:0.5},{type:'runner',count:14,delay:0.3}],[{type:'elite',count:8,delay:1.2},{type:'wraith',count:8,delay:0.45}],[{type:'tank',count:10,delay:1.1},{type:'flyer',count:10,delay:0.4}],[{type:'wraith',count:14,delay:0.4},{type:'elite',count:8,delay:1.1}],[{type:'runner',count:28,delay:0.2}],[{type:'tank',count:12,delay:1.0},{type:'flyer',count:14,delay:0.35}],[{type:'elite',count:12,delay:1.0},{type:'wraith',count:10,delay:0.4},{type:'grunt',count:14,delay:0.4}],[{type:'titan',count:2,delay:3.5},{type:'boss',count:1,delay:2.0},{type:'elite',count:8,delay:1.0}],[{type:'boss',count:2,delay:4.0},{type:'wraith',count:12,delay:0.35},{type:'tank',count:8,delay:1.2}]]
+  },
+  // 第9关 - 时光废墟
+  {
+    name:'时光废墟',subtitle:'第九章 · 时光的残响',chapter:'CHAPTER IX',chapterTitle:'时光的残响',
+    story:['在时间的尽头，古老的文明遗迹矗立在这片被遗忘的土地上。虚无之力扭曲了时间本身，过去的阴影与未来的恐惧同时降临。','守护者，这里是最后的试炼场。时光的守护者曾在此处陨落——不要重蹈他们的覆辙。'],
+    groundColor:0x8a7a5a,pathColor:0x5a4a3a,fogColor:0x9a8a6a,skyTop:0x3a2a1a,skyBottom:0xba9050,lightColor:0xffe0b0,lightIntensity:1.0,ambient:0x6a5a4a,decorations:'ruins',
+    path:[new THREE.Vector3(-30,0,-16),new THREE.Vector3(-12,0,-16),new THREE.Vector3(-12,0,16),new THREE.Vector3(4,0,16),new THREE.Vector3(4,0,-10),new THREE.Vector3(16,0,-10),new THREE.Vector3(16,0,16),new THREE.Vector3(28,0,16),new THREE.Vector3(28,0,-14),new THREE.Vector3(38,0,-14)],
+    startGold:480,startLives:34,
+    waves:[[{type:'grunt',count:20,delay:0.45},{type:'runner',count:16,delay:0.28}],[{type:'elite',count:10,delay:1.1},{type:'wraith',count:10,delay:0.4}],[{type:'tank',count:12,delay:1.0},{type:'flyer',count:12,delay:0.35}],[{type:'titan',count:1,delay:4.0},{type:'elite',count:10,delay:1.0},{type:'runner',count:14,delay:0.25}],[{type:'wraith',count:18,delay:0.35},{type:'grunt',count:16,delay:0.4}],[{type:'tank',count:14,delay:0.9},{type:'flyer',count:16,delay:0.3},{type:'elite',count:8,delay:1.0}],[{type:'titan',count:2,delay:3.0},{type:'wraith',count:14,delay:0.35}],[{type:'boss',count:2,delay:3.5},{type:'elite',count:12,delay:0.9},{type:'tank',count:8,delay:1.1}],[{type:'boss',count:2,delay:3.0},{type:'titan',count:2,delay:3.5},{type:'wraith',count:10,delay:0.4},{type:'flyer',count:10,delay:0.35}]]
+  },
+  // 第10关 - 虚无核心
+  {
+    name:'虚无核心',subtitle:'第十章 · 终焉之战',chapter:'CHAPTER X',chapterTitle:'终焉之战',
+    story:['所有裂隙的源头——虚无核心，就在眼前。虚无之主的完全体正在此处等待。黑暗几乎凝成了实体，连光芒都无法逃脱。','守护者，这是最后的战役。你携带的所有知识、所有经验，都将在此刻接受终极考验。世界之心在背后跳动——绝不让它停止。'],
+    groundColor:0x0a0a0a,pathColor:0x1a0a0a,fogColor:0x0a0000,skyTop:0x000000,skyBottom:0x1a0000,lightColor:0xff2020,lightIntensity:0.7,ambient:0x1a0505,decorations:'core',
+    path:[new THREE.Vector3(-34,0,-18),new THREE.Vector3(-20,0,-18),new THREE.Vector3(-20,0,18),new THREE.Vector3(-8,0,18),new THREE.Vector3(-8,0,-12),new THREE.Vector3(4,0,-12),new THREE.Vector3(4,0,18),new THREE.Vector3(16,0,18),new THREE.Vector3(16,0,-16),new THREE.Vector3(24,0,-16),new THREE.Vector3(24,0,12),new THREE.Vector3(34,0,12),new THREE.Vector3(34,0,-4),new THREE.Vector3(38,0,-4)],
+    startGold:550,startLives:40,
+    waves:[[{type:'grunt',count:22,delay:0.4},{type:'runner',count:18,delay:0.25}],[{type:'elite',count:12,delay:1.0},{type:'wraith',count:12,delay:0.35}],[{type:'tank',count:14,delay:0.9},{type:'flyer',count:14,delay:0.3}],[{type:'titan',count:2,delay:3.5},{type:'elite',count:10,delay:1.0},{type:'wraith',count:8,delay:0.35}],[{type:'runner',count:30,delay:0.2},{type:'grunt',count:20,delay:0.35}],[{type:'tank',count:16,delay:0.8},{type:'flyer',count:18,delay:0.28},{type:'elite',count:10,delay:0.9}],[{type:'wraith',count:20,delay:0.3},{type:'titan',count:2,delay:3.0}],[{type:'boss',count:2,delay:3.0},{type:'elite',count:14,delay:0.85},{type:'tank',count:10,delay:1.0}],[{type:'titan',count:3,delay:2.8},{type:'wraith',count:14,delay:0.3},{type:'flyer',count:12,delay:0.3}],[{type:'boss',count:3,delay:2.5},{type:'titan',count:2,delay:3.0},{type:'elite',count:12,delay:0.8},{type:'wraith',count:10,delay:0.3}]]
+  }
+];
+
+// ==================== 全局状态 ====================
+const G = {
+  scene:null,camera:null,renderer:null,clock:null,
+  raycaster:new THREE.Raycaster(),mouse:new THREE.Vector2(),
+  state:'menu',levelIdx:0,level:null,
+  gold:0,lives:0,wave:0,kills:0,
+  towers:[],enemies:[],projectiles:[],particles:[],effects:[],
+  buildSpots:[],pathMeshes:[],decorations:[],
+  selectedTowerType:null,selectedTower:null,hoveredSpot:null,
+  ghostTower:null,rangeIndicator:null,
+  spawnQueue:[],spawnTimer:0,waveInProgress:false,
+  gameSpeed:1,paused:false,
+  unlockedLevels:1,
+  pathLine:null,rangeCanvas:null,rangeCtx:null,
+};
+
+try{G.unlockedLevels=parseInt(localStorage.getItem('rg_unlocked')||'1');}catch(e){}
+
+function showToast(msg,duration=2000){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._timer);t._timer=setTimeout(()=>t.classList.remove('show'),duration);
+}
+function lerp(a,b,t){return a+(b-a)*t;}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function distance(a,b){return a.distanceTo(b);}
+
+// ==================== 场景初始化 ====================
+function initScene(){
+  G.scene=new THREE.Scene();G.scene.fog=new THREE.Fog(0x88aacc,30,90);
+  G.camera=new THREE.PerspectiveCamera(50,window.innerWidth/window.innerHeight,0.1,200);
+  G.camera.position.set(0,35,28);G.camera.lookAt(0,0,0);
+  G.renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  G.renderer.setSize(window.innerWidth,window.innerHeight);
+  G.renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  G.renderer.shadowMap.enabled=true;G.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  G.renderer.outputColorSpace=THREE.SRGBColorSpace;
+  document.getElementById('canvas-container').appendChild(G.renderer.domElement);
+  G.clock=new THREE.Clock();
+  G.rangeCanvas=document.getElementById('range-overlay');
+  G.rangeCtx=G.rangeCanvas.getContext('2d');
+  resizeRangeCanvas();
+  window.addEventListener('resize',onResize);
+}
+function onResize(){
+  G.camera.aspect=window.innerWidth/window.innerHeight;G.camera.updateProjectionMatrix();
+  G.renderer.setSize(window.innerWidth,window.innerHeight);resizeRangeCanvas();
+}
+function resizeRangeCanvas(){G.rangeCanvas.width=window.innerWidth;G.rangeCanvas.height=window.innerHeight;}
+
+// ==================== 关卡加载 ====================
+function loadLevel(idx){
+  clearLevel();G.levelIdx=idx;G.level=LEVELS[idx];
+  G.scene.fog.color.setHex(G.level.fogColor);G.scene.background=null;
+  createSky();setupLighting();createGround();createPath();createBuildSpots();createDecorations();
+  G.gold=G.level.startGold;G.lives=G.level.startLives;G.wave=0;G.kills=0;
+  G.towers=[];G.enemies=[];G.projectiles=[];G.particles=[];G.effects=[];
+  G.spawnQueue=[];G.waveInProgress=false;G.selectedTowerType=null;G.selectedTower=null;
+  updateHUD();showStoryModal();
+}
+function clearLevel(){
+  while(G.scene.children.length>0){const obj=G.scene.children[0];G.scene.remove(obj);if(obj.geometry)obj.geometry.dispose();if(obj.material){if(Array.isArray(obj.material))obj.material.forEach(m=>m.dispose());else obj.material.dispose();}}
+  G.towers=[];G.enemies=[];G.projectiles=[];G.particles=[];G.effects=[];G.buildSpots=[];G.pathMeshes=[];G.decorations=[];
+  if(G.ghostTower){G.scene.remove(G.ghostTower);G.ghostTower=null;}
+}
+function createSky(){
+  const skyGeo=new THREE.SphereGeometry(100,16,12);
+  const skyMat=new THREE.ShaderMaterial({uniforms:{topColor:{value:new THREE.Color(G.level.skyTop)},bottomColor:{value:new THREE.Color(G.level.skyBottom)},offset:{value:10},exponent:{value:0.7}},vertexShader:`varying vec3 vWorldPosition;void main(){vec4 worldPosition=modelMatrix*vec4(position,1.0);vWorldPosition=worldPosition.xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,fragmentShader:`uniform vec3 topColor;uniform vec3 bottomColor;uniform float offset;uniform float exponent;varying vec3 vWorldPosition;void main(){float h=normalize(vWorldPosition+vec3(0.0,offset,0.0)).y;gl_FragColor=vec4(mix(bottomColor,topColor,max(pow(max(h,0.0),exponent),0.0)),1.0);}`,side:THREE.BackSide});
+  G.scene.add(new THREE.Mesh(skyGeo,skyMat));
+}
+function setupLighting(){
+  const ambient=new THREE.AmbientLight(G.level.ambient,0.6);G.scene.add(ambient);
+  const dirLight=new THREE.DirectionalLight(G.level.lightColor,G.level.lightIntensity);
+  dirLight.position.set(15,25,10);dirLight.castShadow=true;dirLight.shadow.mapSize.set(2048,2048);
+  dirLight.shadow.camera.left=-30;dirLight.shadow.camera.right=30;dirLight.shadow.camera.top=30;dirLight.shadow.camera.bottom=-30;dirLight.shadow.camera.near=0.5;dirLight.shadow.camera.far=60;
+  G.scene.add(dirLight);
+  const hemi=new THREE.HemisphereLight(G.level.skyTop,G.level.groundColor,0.4);G.scene.add(hemi);
+}
+function createGround(){
+  const geo=new THREE.PlaneGeometry(80,80,32,32);const pos=geo.attributes.position;
+  for(let i=0;i<pos.count;i++){const x=pos.getX(i),y=pos.getY(i);const d=Math.sqrt(x*x+y*y);if(d>18){pos.setZ(i,(Math.sin(x*0.3)*Math.cos(y*0.3)+Math.random()*0.5)*(d-18)*0.15);}else{pos.setZ(i,(Math.random()-0.5)*0.2);}}
+  geo.computeVertexNormals();
+  const mat=new THREE.MeshStandardMaterial({color:G.level.groundColor,flatShading:true,roughness:0.9,metalness:0});
+  const ground=new THREE.Mesh(geo,mat);ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;G.scene.add(ground);
+}
+function createPath(){
+  const path=G.level.path;
+  for(let i=0;i<path.length-1;i++){
+    const a=path[i],b=path[i+1];const len=a.distanceTo(b);const segs=Math.max(2,Math.ceil(len/2));
+    for(let s=0;s<segs;s++){
+      const t1=s/segs,t2=(s+1)/segs;const p1=new THREE.Vector3().lerpVectors(a,b,t1),p2=new THREE.Vector3().lerpVectors(a,b,t2);
+      const mid=new THREE.Vector3().lerpVectors(p1,p2,0.5);const segLen=p1.distanceTo(p2);
+      const geo=new THREE.BoxGeometry(2.2,0.15,segLen+0.1);const mat=new THREE.MeshStandardMaterial({color:G.level.pathColor,flatShading:true,roughness:1});
+      const seg=new THREE.Mesh(geo,mat);seg.position.set(mid.x,0.05,mid.z);seg.lookAt(p2.x,0.05,p2.z);seg.receiveShadow=true;G.scene.add(seg);G.pathMeshes.push(seg);
+    }
+  }
+  const startGeo=new THREE.OctahedronGeometry(1,0);const startMat=new THREE.MeshStandardMaterial({color:0x1de9b6,emissive:0x1de9b6,emissiveIntensity:0.8,flatShading:true});
+  const startMark=new THREE.Mesh(startGeo,startMat);startMark.position.copy(path[0]).add(new THREE.Vector3(0,1.5,0));startMark.castShadow=true;G.scene.add(startMark);G.effects.push({mesh:startMark,type:'rotate',speed:1});
+  const endGroup=new THREE.Group();
+  const crystalGeo=new THREE.OctahedronGeometry(1.5,0);const crystalMat=new THREE.MeshStandardMaterial({color:0xffa726,emissive:0xffa726,emissiveIntensity:1.2,flatShading:true,roughness:0.3,metalness:0.5});
+  const crystal=new THREE.Mesh(crystalGeo,crystalMat);crystal.castShadow=true;endGroup.add(crystal);
+  const baseGeo=new THREE.CylinderGeometry(1.8,2.2,0.4,6);const baseMat=new THREE.MeshStandardMaterial({color:0x4a3020,flatShading:true});const base=new THREE.Mesh(baseGeo,baseMat);base.position.y=-1.2;base.castShadow=true;endGroup.add(base);
+  endGroup.position.copy(path[path.length-1]).add(new THREE.Vector3(0,1.5,0));G.scene.add(endGroup);
+  G.effects.push({mesh:crystal,type:'rotate',speed:0.8});G.effects.push({mesh:crystal,type:'bob',baseY:1.5,amp:0.2,speed:1.5,offset:0});
+  for(let i=0;i<12;i++){const p=createParticle(new THREE.Vector3(endGroup.position.x+(Math.random()-0.5)*3,endGroup.position.y+(Math.random()-0.5)*3,endGroup.position.z+(Math.random()-0.5)*3),0xffa726,0.15,2);p.target=endGroup.position.clone();p.orbit=true;p.angle=(i/12)*Math.PI*2;p.radius=2+Math.random();p.speed=0.5+Math.random()*0.5;}
+}
+function createBuildSpots(){
+  const path=G.level.path;const positions=[];
+  for(let i=0;i<path.length-1;i++){
+    const a=path[i],b=path[i+1];const len=a.distanceTo(b);const segs=Math.ceil(len/3);
+    for(let s=0;s<=segs;s++){
+      const t=s/segs;const p=new THREE.Vector3().lerpVectors(a,b,t);const dir=new THREE.Vector3().subVectors(b,a).normalize();const perp=new THREE.Vector3(-dir.z,0,dir.x);
+      for(const side of[1,-1]){for(const dist of[3,5]){const spot=new THREE.Vector3(p.x+perp.x*dist*side,0,p.z+perp.z*dist*side);let tooClose=false;for(const ex of positions){if(ex.distanceTo(spot)<2.5){tooClose=true;break;}}let onPath=false;for(let j=0;j<path.length-1;j++){if(pointToLineDistance(spot,path[j],path[j+1])<2){onPath=true;break;}}if(Math.abs(spot.x)>30||Math.abs(spot.z)>25)tooClose=true;if(!tooClose&&!onPath){positions.push(spot);}}}
+    }
+  }
+  positions.forEach(pos=>{const geo=new THREE.CylinderGeometry(0.9,0.9,0.08,6);const mat=new THREE.MeshStandardMaterial({color:0x1de9b6,transparent:true,opacity:0.4,emissive:0x1de9b6,emissiveIntensity:0.3,flatShading:true});const marker=new THREE.Mesh(geo,mat);marker.position.set(pos.x,0.06,pos.z);G.scene.add(marker);G.buildSpots.push({position:pos,mesh:marker,occupied:false});});
+}
+function pointToLineDistance(p,a,b){const ab=new THREE.Vector3().subVectors(b,a);const ap=new THREE.Vector3().subVectors(p,a);const t=clamp(ap.dot(ab)/ab.lengthSq(),0,1);const closest=new THREE.Vector3().lerpVectors(a,b,t);closest.y=p.y;return p.distanceTo(closest);}
+
+// ==================== 装饰 ====================
+function createDecorations(){
+  const type=G.level.decorations;const path=G.level.path;
+  const isOnPath=(pos)=>{for(let i=0;i<path.length-1;i++){if(pointToLineDistance(pos,path[i],path[i+1])<2.5)return true;}return false;};
+  const count=60;
+  for(let i=0;i<count;i++){
+    const pos=new THREE.Vector3((Math.random()-0.5)*60,0,(Math.random()-0.5)*50);
+    if(isOnPath(pos))continue;if(Math.abs(pos.x)>28||Math.abs(pos.z)>22)continue;
+    let mesh;
+    if(type==='forest')mesh=Math.random()>0.3?createTree():createRock();
+    else if(type==='desert')mesh=Math.random()>0.5?createCactus():createRock();
+    else if(type==='lava')mesh=Math.random()>0.4?createLavaRock():createRock();
+    else if(type==='snow')mesh=Math.random()>0.4?createSnowTree():createSnowRock();
+    else if(type==='swamp')mesh=Math.random()>0.5?createSwampTree():createSwampRock();
+    else if(type==='crystal')mesh=Math.random()>0.5?createCrystalFormation():createRock();
+    else if(type==='storm')mesh=Math.random()>0.4?createStormRock():createRock();
+    else if(type==='void')mesh=Math.random()>0.5?createVoidShard():createRock();
+    else if(type==='ruins')mesh=Math.random()>0.5?createRuinPillar():createRock();
+    else if(type==='core')mesh=Math.random()>0.5?createCoreSpike():createLavaRock();
+    else mesh=createRock();
+    mesh.position.set(pos.x,0,pos.z);mesh.rotation.y=Math.random()*Math.PI*2;const s=0.7+Math.random()*0.6;mesh.scale.setScalar(s);mesh.castShadow=true;G.scene.add(mesh);G.decorations.push(mesh);
+  }
+}
+function createTree(){const g=new THREE.Group();const tGeo=new THREE.CylinderGeometry(0.15,0.25,1,5);const tMat=new THREE.MeshStandardMaterial({color:0x4a2a10,flatShading:true});const trunk=new THREE.Mesh(tGeo,tMat);trunk.position.y=0.5;trunk.castShadow=true;g.add(trunk);const lc=[0x2d5a2a,0x3a6a35,0x4a7c3a][Math.floor(Math.random()*3)];const lGeo=new THREE.ConeGeometry(0.8,1.4,6);const lMat=new THREE.MeshStandardMaterial({color:lc,flatShading:true});const leaves=new THREE.Mesh(lGeo,lMat);leaves.position.y=1.5;leaves.castShadow=true;g.add(leaves);return g;}
+function createRock(){const g=new THREE.Group();const geo=new THREE.DodecahedronGeometry(0.5,0);const mat=new THREE.MeshStandardMaterial({color:0x6a6a6a,flatShading:true,roughness:1});const rock=new THREE.Mesh(geo,mat);rock.position.y=0.3;rock.castShadow=true;g.add(rock);return g;}
+function createCactus(){const g=new THREE.Group();const mat=new THREE.MeshStandardMaterial({color:0x4a7a3a,flatShading:true});const body=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.3,1.5,6),mat);body.position.y=0.75;body.castShadow=true;g.add(body);if(Math.random()>0.5){const arm=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.18,0.6,6),mat);arm.position.set(0.3,1,0);arm.rotation.z=-0.5;arm.castShadow=true;g.add(arm);}return g;}
+function createLavaRock(){const g=new THREE.Group();const geo=new THREE.DodecahedronGeometry(0.6,0);const mat=new THREE.MeshStandardMaterial({color:0x2a0808,emissive:0xff3010,emissiveIntensity:0.4,flatShading:true});const rock=new THREE.Mesh(geo,mat);rock.position.y=0.4;rock.castShadow=true;g.add(rock);return g;}
+function createSnowTree(){const g=new THREE.Group();const tGeo=new THREE.CylinderGeometry(0.12,0.22,1,5);const tMat=new THREE.MeshStandardMaterial({color:0x5a4a3a,flatShading:true});const trunk=new THREE.Mesh(tGeo,tMat);trunk.position.y=0.5;trunk.castShadow=true;g.add(trunk);const sGeo=new THREE.ConeGeometry(0.7,1.3,6);const sMat=new THREE.MeshStandardMaterial({color:0xe8f0f8,flatShading:true,emissive:0xc0d8e8,emissiveIntensity:0.2});const snow=new THREE.Mesh(sGeo,sMat);snow.position.y=1.4;snow.castShadow=true;g.add(snow);return g;}
+function createSnowRock(){const g=new THREE.Group();const geo=new THREE.DodecahedronGeometry(0.5,0);const mat=new THREE.MeshStandardMaterial({color:0xc8d8e8,flatShading:true,roughness:1});const rock=new THREE.Mesh(geo,mat);rock.position.y=0.3;rock.castShadow=true;g.add(rock);return g;}
+function createSwampTree(){const g=new THREE.Group();const tGeo=new THREE.CylinderGeometry(0.12,0.28,1.2,5);const tMat=new THREE.MeshStandardMaterial({color:0x2a3a1a,flatShading:true});const trunk=new THREE.Mesh(tGeo,tMat);trunk.position.y=0.6;trunk.castShadow=true;g.add(trunk);const lGeo=new THREE.SphereGeometry(0.55,6,4);const lMat=new THREE.MeshStandardMaterial({color:0x3a5a2a,emissive:0x1a2a0a,emissiveIntensity:0.3,flatShading:true});const leaves=new THREE.Mesh(lGeo,lMat);leaves.position.y=1.5;leaves.castShadow=true;g.add(leaves);return g;}
+function createSwampRock(){const g=new THREE.Group();const geo=new THREE.DodecahedronGeometry(0.5,0);const mat=new THREE.MeshStandardMaterial({color:0x3a4a2a,emissive:0x1a2a0a,emissiveIntensity:0.2,flatShading:true});const rock=new THREE.Mesh(geo,mat);rock.position.y=0.3;rock.castShadow=true;g.add(rock);return g;}
+function createCrystalFormation(){const g=new THREE.Group();const colors=[0xb088c8,0xc8a0e0,0x9070b0];for(let i=0;i<3;i++){const geo=new THREE.OctahedronGeometry(0.3+Math.random()*0.3,0);const mat=new THREE.MeshStandardMaterial({color:colors[i],emissive:colors[i],emissiveIntensity:0.5,flatShading:true,roughness:0.3,metalness:0.3});const crystal=new THREE.Mesh(geo,mat);crystal.position.set((Math.random()-0.5)*0.5,0.3+Math.random()*0.8,(Math.random()-0.5)*0.5);crystal.castShadow=true;g.add(crystal);}return g;}
+function createStormRock(){const g=new THREE.Group();const geo=new THREE.DodecahedronGeometry(0.5,0);const mat=new THREE.MeshStandardMaterial({color:0x5a5a6a,flatShading:true,roughness:0.8,metalness:0.3});const rock=new THREE.Mesh(geo,mat);rock.position.y=0.3;rock.castShadow=true;g.add(rock);return g;}
+function createVoidShard(){const g=new THREE.Group();const geo=new THREE.ConeGeometry(0.25,1.2,4);const mat=new THREE.MeshStandardMaterial({color:0x3a1a5a,emissive:0x6a2a8a,emissiveIntensity:0.4,flatShading:true,roughness:0.4,metalness:0.4});const shard=new THREE.Mesh(geo,mat);shard.position.y=0.6;shard.castShadow=true;g.add(shard);if(Math.random()>0.5){const s2=shard.clone();s2.position.set(0.3,0.2,0.2);s2.scale.setScalar(0.6);s2.rotation.z=0.4;g.add(s2);}return g;}
+function createRuinPillar(){const g=new THREE.Group();const geo=new THREE.CylinderGeometry(0.3,0.4,1.8,6);const mat=new THREE.MeshStandardMaterial({color:0x8a7a5a,flatShading:true,roughness:0.9});const pillar=new THREE.Mesh(geo,mat);pillar.position.y=0.9;pillar.castShadow=true;g.add(pillar);const topGeo=new THREE.BoxGeometry(0.8,0.3,0.8);const top=new THREE.Mesh(topGeo,mat);top.position.y=1.9;top.castShadow=true;g.add(top);return g;}
+function createCoreSpike(){const g=new THREE.Group();const geo=new THREE.ConeGeometry(0.2,1.4,4);const mat=new THREE.MeshStandardMaterial({color:0x1a0000,emissive:0xff1010,emissiveIntensity:0.5,flatShading:true,roughness:0.3,metalness:0.6});const spike=new THREE.Mesh(geo,mat);spike.position.y=0.7;spike.castShadow=true;g.add(spike);return g;}
+
+// ==================== 塔创建 ====================
+function createTowerMesh(type){
+  const cfg=TOWER_TYPES[type];const g=new THREE.Group();
+  const baseGeo=new THREE.CylinderGeometry(0.8,1,0.4,6);const baseMat=new THREE.MeshStandardMaterial({color:0x3a2a1a,flatShading:true});const base=new THREE.Mesh(baseGeo,baseMat);base.position.y=0.2;base.castShadow=true;base.receiveShadow=true;g.add(base);
+  if(type==='arrow'){
+    const bodyMat=new THREE.MeshStandardMaterial({color:cfg.color,flatShading:true});const body=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.7,1.2,6),bodyMat);body.position.y=1;body.castShadow=true;g.add(body);
+    const headGroup=new THREE.Group();headGroup.position.y=1.7;const head=new THREE.Mesh(new THREE.ConeGeometry(0.6,0.8,6),new THREE.MeshStandardMaterial({color:cfg.color,flatShading:true}));head.castShadow=true;headGroup.add(head);
+    const bow=new THREE.Mesh(new THREE.TorusGeometry(0.4,0.06,4,8,Math.PI),new THREE.MeshStandardMaterial({color:0x2a1a0a,flatShading:true}));bow.rotation.x=Math.PI/2;bow.rotation.z=-Math.PI/2;bow.position.set(0.5,0,0);headGroup.add(bow);
+    g.add(headGroup);g.userData.head=headGroup;
+  }else if(type==='cannon'){
+    const bodyMat=new THREE.MeshStandardMaterial({color:cfg.color,flatShading:true,roughness:0.6,metalness:0.4});const body=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.8,1.2),bodyMat);body.position.y=0.8;body.castShadow=true;g.add(body);
+    const headGroup=new THREE.Group();headGroup.position.y=1.2;const cannon=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.3,1.2,8),bodyMat);cannon.rotation.z=Math.PI/2;cannon.position.x=0.5;cannon.castShadow=true;headGroup.add(cannon);
+    const back=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.5,0.6),bodyMat);back.position.set(-0.1,0,0);headGroup.add(back);g.add(headGroup);g.userData.head=headGroup;
+  }else if(type==='frost'){
+    const bodyMat=new THREE.MeshStandardMaterial({color:cfg.color,flatShading:true,emissive:cfg.color,emissiveIntensity:0.3});const body=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.7,1.2,6),bodyMat);body.position.y=1;body.castShadow=true;g.add(body);
+    const headGroup=new THREE.Group();headGroup.position.y=1.8;for(let i=0;i<3;i++){const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(0.35,0),new THREE.MeshStandardMaterial({color:0xb3e5fc,emissive:0x4fc3f7,emissiveIntensity:0.6,flatShading:true}));const angle=(i/3)*Math.PI*2;crystal.position.set(Math.cos(angle)*0.4,0,Math.sin(angle)*0.4);crystal.castShadow=true;headGroup.add(crystal);}g.add(headGroup);g.userData.head=headGroup;
+  }else if(type==='lightning'){
+    const bodyMat=new THREE.MeshStandardMaterial({color:cfg.color,flatShading:true,emissive:cfg.color,emissiveIntensity:0.3,roughness:0.4,metalness:0.6});const body=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.6,1.2,6),bodyMat);body.position.y=1;body.castShadow=true;g.add(body);
+    const headGroup=new THREE.Group();headGroup.position.y=1.8;for(let i=0;i<3;i++){const ring=new THREE.Mesh(new THREE.TorusGeometry(0.5-i*0.1,0.06,4,12),new THREE.MeshStandardMaterial({color:cfg.color,emissive:cfg.color,emissiveIntensity:0.8,flatShading:true}));ring.rotation.x=Math.PI/2;ring.position.y=i*0.2-0.2;headGroup.add(ring);}
+    const orb=new THREE.Mesh(new THREE.IcosahedronGeometry(0.25,0),new THREE.MeshStandardMaterial({color:0xffffff,emissive:cfg.color,emissiveIntensity:1.5}));headGroup.add(orb);g.userData.orb=orb;g.add(headGroup);g.userData.head=headGroup;
+  }else if(type==='poison'){
+    const bodyMat=new THREE.MeshStandardMaterial({color:cfg.color,flatShading:true,emissive:cfg.color,emissiveIntensity:0.2});const body=new THREE.Mesh(new THREE.SphereGeometry(0.7,6,4),bodyMat);body.position.y=1;body.scale.y=1.3;body.castShadow=true;g.add(body);
+    const headGroup=new THREE.Group();headGroup.position.y=1.8;const sprayer=new THREE.Mesh(new THREE.ConeGeometry(0.3,0.5,6),new THREE.MeshStandardMaterial({color:0x2a4a1a,flatShading:true}));sprayer.rotation.z=-Math.PI/2;sprayer.position.x=0.4;headGroup.add(sprayer);g.add(headGroup);g.userData.head=headGroup;g.userData.poisonParticles=true;
+  }else if(type==='laser'){
+    const bodyMat=new THREE.MeshStandardMaterial({color:cfg.color,flatShading:true,emissive:cfg.color,emissiveIntensity:0.3,metalness:0.5,roughness:0.4});const body=new THREE.Mesh(new THREE.BoxGeometry(0.9,1.2,0.9),bodyMat);body.position.y=1;body.castShadow=true;g.add(body);
+    const headGroup=new THREE.Group();headGroup.position.y=1.8;const lens=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,0.4,12),new THREE.MeshStandardMaterial({color:0xffffff,emissive:cfg.color,emissiveIntensity:1.2}));lens.rotation.z=Math.PI/2;lens.position.x=0.3;headGroup.add(lens);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(0.4,0.08,4,12),bodyMat);ring.rotation.y=Math.PI/2;ring.position.x=0.3;headGroup.add(ring);g.add(headGroup);g.userData.head=headGroup;g.userData.lens=lens;
+  }
+  return g;
+}
+function placeTower(spot,type){
+  const cfg=TOWER_TYPES[type];if(G.gold<cfg.cost){showToast('金币不足');return false;}
+  G.gold-=cfg.cost;const mesh=createTowerMesh(type);mesh.position.copy(spot.position);mesh.position.y=0;G.scene.add(mesh);
+  const tower={type,cfg,mesh,spot,level:1,range:cfg.range,damage:cfg.damage,fireRate:cfg.fireRate,cooldown:0,target:null,laserBeam:null,glowTime:0};
+  spawnBuildEffect(spot.position);G.towers.push(tower);spot.occupied=true;spot.mesh.visible=false;
+  // 放置后，如果金币不足以继续放置同类型塔，自动取消选择
+  if(G.gold < cfg.cost){
+    cancelGhost();
+  }
+  updateHUD();return true;
+}
+function upgradeTower(tower){
+  if(tower.level>=3)return false;const upCost=tower.cfg.upgrades[tower.level-1].cost;if(G.gold<upCost){showToast('金币不足');return false;}
+  G.gold-=upCost;tower.level++;const up=tower.cfg.upgrades[tower.level-2];tower.damage=up.damage;tower.range=up.range;tower.fireRate=up.fireRate;
+  if(up.aoe)tower.aoe=up.aoe;if(up.slow)tower.slow=up.slow;if(up.chains)tower.chains=up.chains;if(up.dot)tower.dot=up.dot;
+  tower.mesh.scale.setScalar(1+(tower.level-1)*0.15);spawnBuildEffect(tower.mesh.position.clone().add(new THREE.Vector3(0,1,0)));updateHUD();return true;
+}
+function sellTower(tower){
+  let refund=Math.floor(tower.cfg.cost*0.6);for(let i=0;i<tower.cfg.upgrades.length;i++){if(i<tower.level-1)refund+=Math.floor(tower.cfg.upgrades[i].cost*0.6);}
+  G.gold+=refund;G.scene.remove(tower.mesh);tower.spot.occupied=false;tower.spot.mesh.visible=true;const idx=G.towers.indexOf(tower);if(idx>=0)G.towers.splice(idx,1);
+  if(G.selectedTower===tower){G.selectedTower=null;document.getElementById('tower-panel').classList.remove('show');}updateHUD();showToast('返还 '+refund+' 金币');
+}
+
+// ==================== 敌人 ====================
+function createEnemyMesh(type){
+  const cfg=ENEMY_TYPES[type];const g=new THREE.Group();
+  if(type==='grunt'){
+    const body=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.8,0.4),new THREE.MeshStandardMaterial({color:cfg.color,flatShading:true}));body.position.y=0.5;body.castShadow=true;g.add(body);
+    const head=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,0.4),new THREE.MeshStandardMaterial({color:0x5a0000,flatShading:true}));head.position.y=1.1;head.castShadow=true;g.add(head);
+    const eye=new THREE.Mesh(new THREE.SphereGeometry(0.08,4,4),new THREE.MeshBasicMaterial({color:0xff3d00}));eye.position.set(0.12,1.15,0.21);g.add(eye);
+  }else if(type==='runner'){
+    const body=new THREE.Mesh(new THREE.ConeGeometry(0.35,0.9,5),new THREE.MeshStandardMaterial({color:cfg.color,flatShading:true,emissive:cfg.color,emissiveIntensity:0.2}));body.position.y=0.55;body.castShadow=true;g.add(body);
+    const eye=new THREE.Mesh(new THREE.SphereGeometry(0.1,4,4),new THREE.MeshBasicMaterial({color:0xffeb3b}));eye.position.set(0,0.7,0.25);g.add(eye);
+  }else if(type==='tank'){
+    const body=new THREE.Mesh(new THREE.BoxGeometry(1,0.9,0.8),new THREE.MeshStandardMaterial({color:cfg.color,flatShading:true,roughness:0.4,metalness:0.6}));body.position.y=0.6;body.castShadow=true;g.add(body);
+    const armor=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.3,0.9),new THREE.MeshStandardMaterial({color:0x607080,flatShading:true,metalness:0.7,roughness:0.3}));armor.position.y=1.05;armor.castShadow=true;g.add(armor);
+    const head=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.4,0.5),new THREE.MeshStandardMaterial({color:0x222222,flatShading:true}));head.position.y=0.5;head.position.x=0.4;g.add(head);
+  }else if(type==='flyer'){
+    const body=new THREE.Mesh(new THREE.IcosahedronGeometry(0.4,0),new THREE.MeshStandardMaterial({color:cfg.color,flatShading:true,emissive:cfg.color,emissiveIntensity:0.3}));body.position.y=1.5;body.castShadow=true;g.add(body);
+    const wingMat=new THREE.MeshStandardMaterial({color:0x4a1a5a,flatShading:true,side:THREE.DoubleSide});const wing1=new THREE.Mesh(new THREE.PlaneGeometry(0.6,0.3),wingMat);wing1.position.set(0.5,1.6,0);wing1.rotation.y=-0.3;g.add(wing1);const wing2=wing1.clone();wing2.position.x=-0.5;wing2.rotation.y=0.3;g.add(wing2);g.userData.wings=[wing1,wing2];g.userData.body=body;
+  }else if(type==='boss'){
+    const body=new THREE.Mesh(new THREE.IcosahedronGeometry(1.2,0),new THREE.MeshStandardMaterial({color:cfg.color,flatShading:true,emissive:0x4a0000,emissiveIntensity:0.5,roughness:0.5,metalness:0.5}));body.position.y=1.5;body.castShadow=true;g.add(body);
+    for(let i=0;i<6;i++){const angle=(i/6)*Math.PI*2;const eye=new THREE.Mesh(new THREE.SphereGeometry(0.12,6,6),new THREE.MeshBasicMaterial({color:0xff3d00}));eye.position.set(Math.cos(angle)*0.7,1.7+Math.sin(i)*0.3,Math.sin(angle)*0.7);g.add(eye);}
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(1.5,0.1,4,16),new THREE.MeshBasicMaterial({color:0xff3d00,transparent:true,opacity:0.6}));ring.rotation.x=Math.PI/2;ring.position.y=0.2;g.add(ring);g.userData.ring=ring;g.userData.body=body;
+  }else if(type==='elite'){
+    const body=new THREE.Mesh(new THREE.BoxGeometry(0.75,0.9,0.5),new THREE.MeshStandardMaterial({color:cfg.color,flatShading:true,emissive:0x2a0000,emissiveIntensity:0.2}));body.position.y=0.6;body.castShadow=true;g.add(body);
+    const armor=new THREE.Mesh(new THREE.BoxGeometry(0.85,0.25,0.6),new THREE.MeshStandardMaterial({color:0x8a6040,flatShading:true,metalness:0.6,roughness:0.4}));armor.position.y=1.05;armor.castShadow=true;g.add(armor);
+    const head=new THREE.Mesh(new THREE.BoxGeometry(0.45,0.45,0.45),new THREE.MeshStandardMaterial({color:0x3a0a0a,flatShading:true}));head.position.y=1.3;head.castShadow=true;g.add(head);
+    const eye=new THREE.Mesh(new THREE.SphereGeometry(0.1,4,4),new THREE.MeshBasicMaterial({color:0xff6600}));eye.position.set(0.14,1.35,0.24);g.add(eye);
+  }else if(type==='wraith'){
+    const body=new THREE.Mesh(new THREE.IcosahedronGeometry(0.35,0),new THREE.MeshStandardMaterial({color:cfg.color,flatShading:true,emissive:cfg.color,emissiveIntensity:0.5,transparent:true,opacity:0.7}));body.position.y=1.5;g.add(body);
+    const ringGeo=new THREE.TorusGeometry(0.5,0.05,4,8);const ring=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:cfg.color,transparent:true,opacity:0.5}));ring.rotation.x=Math.PI/2;ring.position.y=1.5;g.add(ring);g.userData.ring=ring;g.userData.body=body;
+  }else if(type==='titan'){
+    const body=new THREE.Mesh(new THREE.BoxGeometry(1.3,1.2,1),new THREE.MeshStandardMaterial({color:cfg.color,flatShading:true,roughness:0.3,metalness:0.7}));body.position.y=0.8;body.castShadow=true;g.add(body);
+    const armor=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.4,1.2),new THREE.MeshStandardMaterial({color:0x2a2a3a,flatShading:true,metalness:0.8,roughness:0.2}));armor.position.y=1.4;armor.castShadow=true;g.add(armor);
+    const head=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.5,0.7),new THREE.MeshStandardMaterial({color:0x0a0a1a,flatShading:true}));head.position.y=0.7;head.position.x=0.5;g.add(head);
+    for(let i=0;i<4;i++){const angle=(i/4)*Math.PI*2;const eye=new THREE.Mesh(new THREE.SphereGeometry(0.08,4,4),new THREE.MeshBasicMaterial({color:0xff0000}));eye.position.set(Math.cos(angle)*0.3,1.55,Math.sin(angle)*0.3);g.add(eye);}
+  }
+  return g;
+}
+function spawnEnemy(type){
+  const cfg=ENEMY_TYPES[type];const mesh=createEnemyMesh(type);const path=G.level.path;mesh.position.copy(path[0]);mesh.position.y=cfg.flying?0:0;if(cfg.flying)mesh.position.y=0;G.scene.add(mesh);
+  const enemy={type,cfg,mesh,hp:cfg.hp,maxHp:cfg.hp,speed:cfg.speed,pathIdx:0,slowEffect:0,slowAmount:1,dotEffect:0,dotDamage:0,flying:cfg.flying,dead:false,reached:false,bobOffset:Math.random()*Math.PI*2,walkPhase:0};
+  const hbBg=new THREE.Mesh(new THREE.PlaneGeometry(1,0.12),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.6}));hbBg.position.y=cfg.size+0.6;if(cfg.boss)hbBg.position.y=3;mesh.add(hbBg);
+  const hbFg=new THREE.Mesh(new THREE.PlaneGeometry(0.95,0.08),new THREE.MeshBasicMaterial({color:0xff3d00}));hbFg.position.z=0.01;hbFg.position.y=hbBg.position.y;
+  mesh.remove(hbBg);enemy.hbBg=hbBg;enemy.hbFg=hbFg;enemy.hbBgWidth=cfg.boss?3:(cfg.size>1?2.2:1);hbBg.scale.x=enemy.hbBgWidth;hbFg.scale.x=enemy.hbBgWidth*0.95;
+  G.scene.add(hbBg);G.scene.add(hbFg);G.enemies.push(enemy);
+}
+function updateEnemy(enemy,dt){
+  if(enemy.dead||enemy.reached)return;
+  if(enemy.dotEffect>0){enemy.hp-=enemy.dotDamage*dt;enemy.dotEffect-=dt;if(Math.random()<0.3){createParticle(enemy.mesh.position.clone().add(new THREE.Vector3(0,1,0)),0x76ff03,0.2,1);}}
+  let speedMul=1;if(enemy.slowEffect>0){enemy.slowEffect-=dt;speedMul=enemy.slowAmount;}else{enemy.slowAmount=1;}
+  const path=G.level.path;
+  if(enemy.pathIdx<path.length-1){
+    const target=path[enemy.pathIdx+1];const pos=enemy.mesh.position;const dir=new THREE.Vector3().subVectors(target,pos);dir.y=0;const dist=dir.length();const moveDist=enemy.speed*speedMul*dt;
+    if(dist<moveDist){pos.copy(target);enemy.pathIdx++;}else{dir.normalize();pos.add(dir.multiplyScalar(moveDist));}
+    if(dir.length()>0){const targetRot=Math.atan2(dir.x,dir.z);enemy.mesh.rotation.y=lerp(enemy.mesh.rotation.y,targetRot,0.15);}
+  }else{enemy.reached=true;G.lives-=enemy.cfg.damage;spawnReachEffect(enemy.mesh.position);removeEnemy(enemy);updateHUD();if(G.lives<=0){gameOver(false);}return;}
+  if(enemy.hp<=0){enemy.dead=true;G.gold+=enemy.cfg.gold;G.kills++;spawnDeathEffect(enemy.mesh.position,enemy.cfg.color,enemy.cfg.size);removeEnemy(enemy);updateHUD();return;}
+  enemy.walkPhase+=dt*enemy.speed*3*speedMul;
+  if(enemy.type==='grunt'||enemy.type==='tank'||enemy.type==='elite'){enemy.mesh.position.y=Math.abs(Math.sin(enemy.walkPhase))*0.15;}
+  else if(enemy.type==='runner'){enemy.mesh.position.y=Math.abs(Math.sin(enemy.walkPhase))*0.2;}
+  else if(enemy.type==='flyer'){enemy.mesh.position.y=1.5+Math.sin(enemy.bobOffset+G.clock.elapsedTime*2)*0.2;if(enemy.mesh.userData.wings){const flap=Math.sin(G.clock.elapsedTime*15)*0.5;enemy.mesh.userData.wings[0].rotation.z=-0.3+flap;enemy.mesh.userData.wings[1].rotation.z=0.3-flap;}}
+  else if(enemy.type==='wraith'){enemy.mesh.position.y=1.5+Math.sin(enemy.bobOffset+G.clock.elapsedTime*3)*0.3;if(enemy.mesh.userData.ring){enemy.mesh.userData.ring.rotation.z+=dt*2;}if(enemy.mesh.userData.body){enemy.mesh.userData.body.rotation.y+=dt*2;}}
+  else if(enemy.type==='boss'){enemy.mesh.position.y=1.5+Math.sin(enemy.bobOffset+G.clock.elapsedTime)*0.1;if(enemy.mesh.userData.ring){enemy.mesh.userData.ring.rotation.z+=dt;}if(enemy.mesh.userData.body){enemy.mesh.userData.body.rotation.y+=dt*0.5;}}
+  else if(enemy.type==='titan'){enemy.mesh.position.y=Math.abs(Math.sin(enemy.walkPhase*0.5))*0.08;}
+  const screenPos=enemy.mesh.position.clone();screenPos.y+=enemy.cfg.boss?3:(enemy.cfg.size>1?2.2:(enemy.cfg.size+0.6));
+  if(enemy.hbBg&&enemy.hbFg){enemy.hbBg.position.copy(screenPos);enemy.hbFg.position.copy(screenPos);enemy.hbFg.position.z=screenPos.z+0.01;const ratio=clamp(enemy.hp/enemy.maxHp,0,1);enemy.hbFg.scale.x=enemy.hbBgWidth*0.95*ratio;enemy.hbFg.position.x=screenPos.x-enemy.hbBgWidth*0.95*(1-ratio)*0.5;enemy.hbBg.lookAt(G.camera.position);enemy.hbFg.lookAt(G.camera.position);const visible=enemy.hp<enemy.maxHp;enemy.hbBg.visible=visible;enemy.hbFg.visible=visible;}
+}
+function worldToScreen(pos){const v=pos.clone().project(G.camera);return new THREE.Vector3((v.x+1)/2*window.innerWidth,(1-(v.y+1)/2)*window.innerHeight,0);}
+function removeEnemy(enemy){G.scene.remove(enemy.mesh);if(enemy.hbBg)G.scene.remove(enemy.hbBg);if(enemy.hbFg)G.scene.remove(enemy.hbFg);const idx=G.enemies.indexOf(enemy);if(idx>=0)G.enemies.splice(idx,1);}
+
+// ==================== 塔攻击 ====================
+function updateTower(tower,dt){
+  tower.cooldown-=dt;tower.glowTime-=dt;
+  const enemies=G.enemies.filter(e=>!e.dead&&!e.reached);let target=null;let minDistToEnd=Infinity;
+  for(const e of enemies){const d=e.mesh.position.distanceTo(tower.mesh.position);if(d<=tower.range){const distToEnd=G.level.path.length-1-e.pathIdx;if(distToEnd<minDistToEnd){minDistToEnd=distToEnd;target=e;}}}
+  tower.target=target;
+  if(target&&tower.mesh.userData.head){const dir=new THREE.Vector3().subVectors(target.mesh.position,tower.mesh.position);dir.y=0;const targetRot=Math.atan2(dir.x,dir.z);const head=tower.mesh.userData.head;let diff=targetRot-head.rotation.y;while(diff>Math.PI)diff-=Math.PI*2;while(diff<-Math.PI)diff+=Math.PI*2;head.rotation.y+=diff*0.15;}
+  if(tower.type==='laser'&&target){target.hp-=tower.damage*dt;tower.glowTime=0.1;if(!tower.laserBeam){const geo=new THREE.CylinderGeometry(0.08,0.08,1,6);const mat=new THREE.MeshBasicMaterial({color:tower.cfg.accent,transparent:true,opacity:0.8});tower.laserBeam=new THREE.Mesh(geo,mat);G.scene.add(tower.laserBeam);}
+    const start=tower.mesh.position.clone();start.y=1.8;const end=target.mesh.position.clone();end.y+=0.5;const mid=new THREE.Vector3().lerpVectors(start,end,0.5);tower.laserBeam.position.copy(mid);tower.laserBeam.lookAt(end);tower.laserBeam.rotateX(Math.PI/2);tower.laserBeam.scale.y=start.distanceTo(end);tower.laserBeam.visible=true;
+    if(tower.mesh.userData.lens){tower.mesh.userData.lens.material.emissiveIntensity=2;}if(Math.random()<0.4){createParticle(end,tower.cfg.accent,0.15,0.6);}
+  }else{if(tower.laserBeam){tower.laserBeam.visible=false;}if(tower.mesh.userData.lens){tower.mesh.userData.lens.material.emissiveIntensity=1.2;}}
+  if(tower.type==='lightning'&&target&&tower.cooldown<=0){tower.cooldown=1/tower.fireRate;tower.glowTime=0.2;const chainTargets=[target];let current=target;for(let i=1;i<tower.chains;i++){let nextTarget=null;let minD=tower.cfg.chainRange||4;for(const e of enemies){if(chainTargets.includes(e))continue;const d=e.mesh.position.distanceTo(current.mesh.position);if(d<minD){minD=d;nextTarget=e;}}if(nextTarget){chainTargets.push(nextTarget);current=nextTarget;}else break;}
+    let from=tower.mesh.position.clone();from.y=1.8;for(const t of chainTargets){t.hp-=tower.damage*(1-chainTargets.indexOf(t)*0.15);const to=t.mesh.position.clone();to.y+=0.5;createLightning(from,to,tower.cfg.accent);from=to;}
+    if(tower.mesh.userData.orb){tower.mesh.userData.orb.material.emissiveIntensity=3;setTimeout(()=>{if(tower.mesh.userData.orb)tower.mesh.userData.orb.material.emissiveIntensity=1.5;},100);}}
+  if(['arrow','cannon','frost','poison'].includes(tower.type)&&target&&tower.cooldown<=0){tower.cooldown=1/tower.fireRate;tower.glowTime=0.15;fireProjectile(tower,target);}
+  if(tower.type==='poison'&&Math.random()<0.3){const p=createParticle(tower.mesh.position.clone().add(new THREE.Vector3(0,1.8,0)),tower.cfg.accent,0.2,1.5);p.velocity.y=0.5;}
+}
+function fireProjectile(tower,target){
+  const cfg=tower.cfg;const start=tower.mesh.position.clone();start.y=1.8;let projMesh;
+  if(tower.type==='arrow'){projMesh=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.5,4),new THREE.MeshBasicMaterial({color:cfg.accent}));}
+  else if(tower.type==='cannon'){projMesh=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,6),new THREE.MeshStandardMaterial({color:0x2a2a2a,emissive:cfg.accent,emissiveIntensity:0.5}));}
+  else if(tower.type==='frost'){projMesh=new THREE.Mesh(new THREE.OctahedronGeometry(0.18,0),new THREE.MeshStandardMaterial({color:cfg.accent,emissive:cfg.accent,emissiveIntensity:1}));}
+  else if(tower.type==='poison'){projMesh=new THREE.Mesh(new THREE.SphereGeometry(0.15,6,4),new THREE.MeshStandardMaterial({color:cfg.accent,emissive:cfg.accent,emissiveIntensity:0.6}));}
+  projMesh.position.copy(start);G.scene.add(projMesh);const proj={mesh:projMesh,target,tower,speed:cfg.projSpeed||20,type:tower.type,trail:true};G.projectiles.push(proj);
+}
+function updateProjectile(proj,dt){
+  if(!proj.target||proj.target.dead||proj.target.reached){if(proj.mesh)G.scene.remove(proj.mesh);const idx=G.projectiles.indexOf(proj);if(idx>=0)G.projectiles.splice(idx,1);return;}
+  const targetPos=proj.target.mesh.position.clone();targetPos.y+=0.5;const dir=new THREE.Vector3().subVectors(targetPos,proj.mesh.position);const dist=dir.length();const moveDist=proj.speed*dt;
+  if(dist<moveDist+0.3){onProjectileHit(proj);G.scene.remove(proj.mesh);const idx=G.projectiles.indexOf(proj);if(idx>=0)G.projectiles.splice(idx,1);}
+  else{dir.normalize();proj.mesh.position.add(dir.multiplyScalar(moveDist));proj.mesh.lookAt(targetPos);if(Math.random()<0.5){createParticle(proj.mesh.position.clone(),proj.tower.cfg.accent,0.1,0.4);}}
+}
+function onProjectileHit(proj){
+  const tower=proj.tower;const target=proj.target;const cfg=tower.cfg;
+  if(tower.type==='arrow'){target.hp-=tower.damage;spawnHitEffect(target.mesh.position.clone().add(new THREE.Vector3(0,0.5,0)),cfg.accent);}
+  else if(tower.type==='cannon'){target.hp-=tower.damage;spawnExplosion(target.mesh.position.clone(),cfg.accent,tower.aoe||2.5);for(const e of G.enemies){if(e===target||e.dead||e.reached)continue;const d=e.mesh.position.distanceTo(target.mesh.position);if(d<(tower.aoe||2.5)){e.hp-=tower.damage*0.6;}}}
+  else if(tower.type==='frost'){target.hp-=tower.damage;target.slowEffect=cfg.slowDur||2;target.slowAmount=1-(tower.slow||0.5);spawnFrostEffect(target.mesh.position.clone().add(new THREE.Vector3(0,0.5,0)));}
+  else if(tower.type==='poison'){target.hp-=tower.damage;target.dotEffect=cfg.dotDur||4;target.dotDamage=tower.dot||cfg.dot;spawnPoisonEffect(target.mesh.position.clone().add(new THREE.Vector3(0,0.5,0)));}
+}
+
+// ==================== 特效 ====================
+function createParticle(pos,color,size=0.15,lifetime=1){const geo=new THREE.SphereGeometry(size,4,4);const mat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:1});const p=new THREE.Mesh(geo,mat);p.position.copy(pos);G.scene.add(p);const particle={mesh:p,life:lifetime,maxLife:lifetime,velocity:new THREE.Vector3((Math.random()-0.5)*2,Math.random()*2,(Math.random()-0.5)*2),color};G.particles.push(particle);return particle;}
+function updateParticle(p,dt){p.life-=dt;if(p.life<=0){G.scene.remove(p.mesh);const idx=G.particles.indexOf(p);if(idx>=0)G.particles.splice(idx,1);return;}if(p.orbit&&p.target){p.angle+=p.speed*dt;p.mesh.position.x=p.target.x+Math.cos(p.angle)*p.radius;p.mesh.position.z=p.target.z+Math.sin(p.angle)*p.radius;p.mesh.position.y=p.target.y+Math.sin(p.angle*2)*0.5;}else{p.mesh.position.add(p.velocity.clone().multiplyScalar(dt));p.velocity.y-=3*dt;}const ratio=p.life/p.maxLife;p.mesh.material.opacity=ratio;p.mesh.scale.setScalar(ratio);}
+function createLightning(from,to,color){const segments=8;const points=[];for(let i=0;i<=segments;i++){const t=i/segments;const p=new THREE.Vector3().lerpVectors(from,to,t);if(i>0&&i<segments){p.x+=(Math.random()-0.5)*0.5;p.y+=(Math.random()-0.5)*0.5;p.z+=(Math.random()-0.5)*0.5;}points.push(p);}const geo=new THREE.BufferGeometry().setFromPoints(points);const mat=new THREE.LineBasicMaterial({color,transparent:true,opacity:0.9});const line=new THREE.Line(geo,mat);G.scene.add(line);G.effects.push({mesh:line,type:'lightning',life:0.2,maxLife:0.2});for(let i=0;i<5;i++){const t=Math.random();const p=new THREE.Vector3().lerpVectors(from,to,t);createParticle(p,color,0.15,0.3);}}
+function spawnHitEffect(pos,color){for(let i=0;i<8;i++){createParticle(pos,color,0.15,0.5);}}
+function spawnExplosion(pos,color,radius){const flashGeo=new THREE.SphereGeometry(radius*0.3,8,8);const flashMat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.9});const flash=new THREE.Mesh(flashGeo,flashMat);flash.position.copy(pos);G.scene.add(flash);G.effects.push({mesh:flash,type:'expand',life:0.3,maxLife:0.3,targetScale:radius*2});for(let i=0;i<20;i++){const p=createParticle(pos,color,0.2,0.7);p.velocity.multiplyScalar(2);}
+  const ringGeo=new THREE.RingGeometry(0.1,0.3,16);const ringMat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.7,side:THREE.DoubleSide});const ring=new THREE.Mesh(ringGeo,ringMat);ring.position.copy(pos);ring.rotation.x=-Math.PI/2;G.scene.add(ring);G.effects.push({mesh:ring,type:'shockwave',life:0.5,maxLife:0.5,targetScale:radius*3});}
+function spawnFrostEffect(pos){for(let i=0;i<10;i++){const p=createParticle(pos,0xb3e5fc,0.18,0.6);p.velocity.multiplyScalar(0.8);}const ringGeo=new THREE.RingGeometry(0.1,0.25,12);const ring=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:0x4fc3f7,transparent:true,opacity:0.8,side:THREE.DoubleSide}));ring.position.copy(pos);ring.rotation.x=-Math.PI/2;G.scene.add(ring);G.effects.push({mesh:ring,type:'shockwave',life:0.4,maxLife:0.4,targetScale:2});}
+function spawnPoisonEffect(pos){for(let i=0;i<6;i++){const p=createParticle(pos,0x76ff03,0.2,0.8);p.velocity.y=0.5+Math.random();p.velocity.x*=0.3;p.velocity.z*=0.3;}}
+function spawnDeathEffect(pos,color,size){for(let i=0;i<15;i++){const p=createParticle(pos.clone().add(new THREE.Vector3(0,0.5,0)),color,0.2,0.8);p.velocity.multiplyScalar(1.5);}for(let i=0;i<5;i++){const p=createParticle(pos.clone().add(new THREE.Vector3(0,1,0)),0xffd54f,0.15,0.6);p.velocity.y=2;}}
+function spawnBuildEffect(pos){for(let i=0;i<12;i++){const p=createParticle(pos.clone().add(new THREE.Vector3(0,0.5,0)),0xffa726,0.15,0.6);p.velocity.y=2+Math.random();}}
+function spawnReachEffect(pos){for(let i=0;i<10;i++){const p=createParticle(pos,0xff3d00,0.2,0.5);p.velocity.multiplyScalar(2);}}
+function updateEffect(eff,dt){
+  if(eff.type==='lightning'){eff.life-=dt;if(eff.life<=0){G.scene.remove(eff.mesh);const idx=G.effects.indexOf(eff);if(idx>=0)G.effects.splice(idx,1);return;}eff.mesh.material.opacity=eff.life/eff.maxLife;}
+  else if(eff.type==='expand'){eff.life-=dt;if(eff.life<=0){G.scene.remove(eff.mesh);const idx=G.effects.indexOf(eff);if(idx>=0)G.effects.splice(idx,1);return;}const ratio=1-eff.life/eff.maxLife;eff.mesh.scale.setScalar(lerp(0.5,eff.targetScale,ratio));eff.mesh.material.opacity=(1-ratio)*0.9;}
+  else if(eff.type==='shockwave'){eff.life-=dt;if(eff.life<=0){G.scene.remove(eff.mesh);const idx=G.effects.indexOf(eff);if(idx>=0)G.effects.splice(idx,1);return;}const ratio=1-eff.life/eff.maxLife;eff.mesh.scale.setScalar(lerp(0.3,eff.targetScale,ratio));eff.mesh.material.opacity=(1-ratio)*0.8;}
+  else if(eff.type==='rotate'){eff.mesh.rotation.y+=dt*(eff.speed||1);}
+  else if(eff.type==='bob'){eff.mesh.position.y=(eff.baseY||0)+Math.sin(G.clock.elapsedTime*(eff.speed||1)+(eff.offset||0))*(eff.amp||0.2);}
+}
+
+// ==================== 波次 ====================
+function startWave(){if(G.waveInProgress)return;if(G.wave>=G.level.waves.length)return;G.wave++;G.waveInProgress=true;const waveDef=G.level.waves[G.wave-1];G.spawnQueue=[];for(const group of waveDef){for(let i=0;i<group.count;i++){G.spawnQueue.push({type:group.type,delay:group.delay});}}G.spawnTimer=0;document.getElementById('start-wave-btn').disabled=true;document.getElementById('wave-info-text').textContent=`第 ${G.wave} 波`;updateHUD();}
+function updateWave(dt){if(!G.waveInProgress)return;if(G.spawnQueue.length>0){G.spawnTimer-=dt;if(G.spawnTimer<=0){const next=G.spawnQueue.shift();spawnEnemy(next.type);G.spawnTimer=next.delay;}}else if(G.enemies.length===0){G.waveInProgress=false;G.gold+=30+G.wave*5;updateHUD();if(G.wave>=G.level.waves.length){setTimeout(()=>gameOver(true),1000);}else{document.getElementById('start-wave-btn').disabled=false;document.getElementById('wave-info-text').textContent=`波次完成 +${30+G.wave*5}金币`;}}}
+
+// ==================== HUD ====================
+function updateHUD(){
+  document.getElementById('gold-val').textContent=G.gold;
+  document.getElementById('lives-val').textContent=Math.max(0,G.lives);
+  document.getElementById('wave-val').textContent=`${G.wave}/${G.level.waves.length}`;
+
+  // 🔧 修复：所有塔按钮（包括选中的）都根据实际成本判断是否可负担
+  document.querySelectorAll('.tower-btn').forEach(btn=>{
+    const type = btn.dataset.type;
+    const cost = TOWER_TYPES[type].cost;
+    const canAfford = G.gold >= cost;
+    btn.classList.toggle('unaffordable', !canAfford);
+  });
+
+  // 如果选中的塔类型金币不足，自动取消选择
+  if(G.selectedTowerType && G.gold < TOWER_TYPES[G.selectedTowerType].cost){
+    cancelGhost();
+  }
+
+  // 塔信息面板
+  if(G.selectedTower){
+    const t=G.selectedTower;
+    document.getElementById('tp-name').textContent=t.cfg.name;
+    document.getElementById('tp-level').textContent=`LV.${t.level}`;
+    document.getElementById('tp-damage').textContent=t.damage.toFixed(t.type==='laser'?1:0);
+    document.getElementById('tp-range').textContent=t.range.toFixed(1);
+    document.getElementById('tp-rate').textContent=t.fireRate.toFixed(1);
+    if(t.level<3){
+      const upCost=t.cfg.upgrades[t.level-1].cost;
+      document.getElementById('tp-upgrade-info').textContent=`升级费用: ${upCost}`;
+      document.getElementById('tp-upgrade-btn').disabled=G.gold<upCost;
+      document.getElementById('tp-upgrade-btn').textContent='升级';
+    }else{
+      document.getElementById('tp-upgrade-info').textContent='已达最高等级';
+      document.getElementById('tp-upgrade-btn').disabled=true;
+      document.getElementById('tp-upgrade-btn').textContent='满级';
+    }
+    let refund=Math.floor(t.cfg.cost*0.6);
+    for(let i=0;i<t.level-1;i++)refund+=Math.floor(t.cfg.upgrades[i].cost*0.6);
+    document.getElementById('tp-sell-btn').textContent=`出售 (+${refund})`;
+  }
+}
+function buildTowerBar(){
+  const bar=document.getElementById('tower-bar');bar.innerHTML='';
+
+  // 🔧 修复：使用 cfg.color（更深的颜色）作为图标颜色，确保冰塔等浅色塔也能看清
+  const icons={
+    arrow:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l18-8-8 18-2-7-8-3z"/></svg>',
+    cannon:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><rect x="11" y="2" width="2" height="10"/></svg>',
+    frost:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2v20M2 12h20M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    lightning:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4 14h7l-2 8 9-12h-7l2-8z"/></svg>',
+    poison:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8 6 6 10 6 14a6 6 0 0012 0c0-4-2-8-6-12z"/></svg>',
+    laser:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/></svg>'
+  };
+
+  for(const[type,cfg]of Object.entries(TOWER_TYPES)){
+    const btn=document.createElement('div');
+    btn.className='tower-btn';
+    btn.dataset.type=type;
+    // 使用 cfg.color 作为图标颜色（更深更饱和，在深色背景上更明显）
+    const iconColor = '#' + cfg.color.toString(16).padStart(6, '0');
+    btn.innerHTML=`
+      <div class="tower-icon" style="color:${iconColor}">${icons[type]}</div>
+      <div class="tower-name">${cfg.name}</div>
+      <div class="tower-cost">⬡ ${cfg.cost}</div>
+    `;
+    btn.title=cfg.desc;
+    btn.addEventListener('click',()=>{
+      if(G.gold<cfg.cost){
+        showToast('金币不足');
+        return;
+      }
+      // 如果已经选中同类型，取消选择
+      if(G.selectedTowerType===type){
+        G.selectedTowerType=null;
+        cancelGhost();
+        document.querySelectorAll('.tower-btn').forEach(b=>b.classList.remove('selected'));
+        return;
+      }
+      // 选择新类型
+      document.querySelectorAll('.tower-btn').forEach(b=>b.classList.remove('selected'));
+      G.selectedTowerType=type;
+      btn.classList.add('selected');
+      createGhost(type);
+    });
+    bar.appendChild(btn);
+  }
+}
+function createGhost(type){if(G.ghostTower)G.scene.remove(G.ghostTower);G.ghostTower=createTowerMesh(type);G.ghostTower.traverse(c=>{if(c.material){c.material=c.material.clone();c.material.transparent=true;c.material.opacity=0.5;}});G.scene.add(G.ghostTower);}
+function cancelGhost(){if(G.ghostTower){G.scene.remove(G.ghostTower);G.ghostTower=null;}G.selectedTowerType=null;document.querySelectorAll('.tower-btn').forEach(b=>b.classList.remove('selected'));}
+
+// ==================== 范围指示器 ====================
+function drawRangeIndicator(){
+  const ctx=G.rangeCtx;ctx.clearRect(0,0,G.rangeCanvas.width,G.rangeCanvas.height);
+  let drawRange=null,drawPos=null,drawColor='#ffa726';
+  if(G.hoveredSpot&&G.selectedTowerType&&!G.hoveredSpot.occupied){drawRange=TOWER_TYPES[G.selectedTowerType].range;drawPos=G.hoveredSpot.position;drawColor='#1de9b6';}
+  if(G.selectedTower){drawRange=G.selectedTower.range;drawPos=G.selectedTower.mesh.position;drawColor='#ffa726';}
+  if(drawRange&&drawPos){const center=drawPos.clone();center.y=0.1;const segments=48;ctx.beginPath();for(let i=0;i<=segments;i++){const angle=(i/segments)*Math.PI*2;const p=new THREE.Vector3(center.x+Math.cos(angle)*drawRange,0.1,center.z+Math.sin(angle)*drawRange);const screen=worldToScreen(p);if(i===0)ctx.moveTo(screen.x,screen.y);else ctx.lineTo(screen.x,screen.y);}ctx.strokeStyle=drawColor;ctx.lineWidth=2;ctx.globalAlpha=0.8;ctx.stroke();ctx.fillStyle=drawColor;ctx.globalAlpha=0.08;ctx.fill();ctx.globalAlpha=1;}
+}
+
+// ==================== 鼠标交互 ====================
+function initInput(){G.renderer.domElement.addEventListener('mousemove',onMouseMove);G.renderer.domElement.addEventListener('click',onClick);G.renderer.domElement.addEventListener('contextmenu',e=>{e.preventDefault();cancelGhost();if(G.selectedTower){G.selectedTower=null;document.getElementById('tower-panel').classList.remove('show');}});}
+function onMouseMove(e){G.mouse.x=(e.clientX/window.innerWidth)*2-1;G.mouse.y=-(e.clientY/window.innerHeight)*2+1;if(G.selectedTowerType&&G.ghostTower){G.raycaster.setFromCamera(G.mouse,G.camera);const spotMeshes=G.buildSpots.filter(s=>!s.occupied).map(s=>s.mesh);const intersects=G.raycaster.intersectObjects(spotMeshes);if(intersects.length>0){const spot=G.buildSpots.find(s=>s.mesh===intersects[0].object);G.hoveredSpot=spot;G.ghostTower.position.copy(spot.position);G.ghostTower.visible=true;}else{G.hoveredSpot=null;G.ghostTower.visible=false;}}else{G.hoveredSpot=null;}}
+function onClick(e){if(G.state!=='playing')return;if(G.selectedTowerType&&G.hoveredSpot){placeTower(G.hoveredSpot,G.selectedTowerType);return;}
+  G.raycaster.setFromCamera(G.mouse,G.camera);const towerMeshes=G.towers.map(t=>t.mesh);const intersects=G.raycaster.intersectObjects(towerMeshes,true);if(intersects.length>0){let target=intersects[0].object;while(target.parent&&!G.towers.find(t=>t.mesh===target)){target=target.parent;}const tower=G.towers.find(t=>t.mesh===target);if(tower){selectTower(tower);return;}}if(G.selectedTower){G.selectedTower=null;document.getElementById('tower-panel').classList.remove('show');}}
+function selectTower(tower){G.selectedTower=tower;document.getElementById('tower-panel').classList.add('show');updateHUD();}
+
+// ==================== 游戏循环 ====================
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(G.clock.getDelta(),0.1)*G.gameSpeed;
+  if(G.state==='playing'&&!G.paused){
+    updateWave(dt);
+    for(const enemy of[...G.enemies])updateEnemy(enemy,dt);
+    for(const tower of G.towers)updateTower(tower,dt);
+    for(const proj of[...G.projectiles])updateProjectile(proj,dt);
+    for(const p of[...G.particles])updateParticle(p,dt);
+    for(const eff of[...G.effects])updateEffect(eff,dt);
+    for(const spot of G.buildSpots){if(!spot.occupied){spot.mesh.material.opacity=0.3+Math.sin(G.clock.elapsedTime*2)*0.15;spot.mesh.rotation.y+=dt*0.5;}}
+    G.camera.position.x=Math.sin(G.clock.elapsedTime*0.1)*0.5;
+  }
+  drawRangeIndicator();
+  G.renderer.render(G.scene,G.camera);
+}
+
+// ==================== 游戏控制 ====================
+function showStoryModal(){document.getElementById('story-chapter').textContent=G.level.chapter;document.getElementById('story-title').textContent=G.level.chapterTitle;const body=document.getElementById('story-body');body.innerHTML=G.level.story.map(p=>`<p>${p}</p>`).join('');document.getElementById('story-modal').classList.remove('hidden');G.state='story';}
+function startGame(){document.getElementById('story-modal').classList.add('hidden');document.getElementById('hud').classList.remove('hidden');G.state='playing';buildTowerBar();document.getElementById('start-wave-btn').disabled=false;document.getElementById('wave-info-text').textContent='准备就绪';}
+function gameOver(win){
+  G.state=win?'win':'lose';
+  if(win&&G.levelIdx+1<LEVELS.length){G.unlockedLevels=Math.max(G.unlockedLevels,G.levelIdx+2);try{localStorage.setItem('rg_unlocked',G.unlockedLevels);}catch(e){}}
+  const modal=document.getElementById('result-modal');const title=document.getElementById('result-title');const sub=document.getElementById('result-sub');const text=document.getElementById('result-text');const nextBtn=document.getElementById('result-next');
+  if(win){
+    title.textContent='胜利';title.className='modal-title win';sub.textContent='VICTORY';
+    if(G.levelIdx+1<LEVELS.length){
+      text.textContent='裂痕暂时被封锁，但更深处的黑暗正在涌动。前往下一个战场。';
+      nextBtn.textContent='下一关';nextBtn.style.display='';
+      nextBtn.onclick=()=>{document.getElementById('result-modal').classList.add('hidden');loadLevel(G.levelIdx+1);};
+    }else{
+      text.textContent='虚无之主已被彻底击退。世界之心水晶再次闪耀——而且比以往任何时候都更加明亮。守护者，你的名字将被铭刻在时光的永恒之中。';
+      nextBtn.textContent='返回主菜单';nextBtn.style.display='';
+      nextBtn.onclick=()=>{document.getElementById('result-modal').classList.add('hidden');backToMenu();};
+    }
+  }else{
+    title.textContent='失败';title.className='modal-title lose';sub.textContent='DEFEAT';text.textContent='世界之心被虚无吞噬。但守护者不会真正陨落——重整旗鼓，再次出击。';nextBtn.textContent='重试';
+    nextBtn.onclick=()=>{document.getElementById('result-modal').classList.add('hidden');loadLevel(G.levelIdx);};
+  }
+  document.getElementById('result-kills').textContent=G.kills;document.getElementById('result-gold').textContent=G.gold;document.getElementById('result-waves').textContent=G.wave;modal.classList.remove('hidden');
+}
+function showLevelSelect(){
+  document.getElementById('main-menu').classList.add('hidden');document.getElementById('level-select').classList.remove('hidden');
+  const grid=document.getElementById('level-grid');grid.innerHTML='';
+  LEVELS.forEach((lv,i)=>{
+    const card=document.createElement('div');const locked=i+1>G.unlockedLevels;card.className='level-card'+(locked?' locked':'');
+    card.innerHTML=`<div class="level-preview preview-${i+1}"></div><div class="level-num">CHAPTER ${CHAPTER_ROMAN[i]}</div><div class="level-name">${lv.name}</div><div class="level-sub">${lv.subtitle}</div><div class="level-info">${locked?'🔒 未解锁':`${lv.waves.length} 波次 · 起始 ${lv.startGold} 金币`}</div>`;
+    if(!locked){card.addEventListener('click',()=>{document.getElementById('level-select').classList.add('hidden');loadLevel(i);});}
+    grid.appendChild(card);
+  });
+}
+function backToMenu(){document.getElementById('level-select').classList.add('hidden');document.getElementById('main-menu').classList.remove('hidden');document.getElementById('hud').classList.add('hidden');document.getElementById('result-modal').classList.add('hidden');document.getElementById('pause-modal').classList.add('hidden');G.state='menu';while(G.scene.children.length>0){const obj=G.scene.children[0];G.scene.remove(obj);}G.towers=[];G.enemies=[];G.projectiles=[];G.particles=[];G.effects=[];}
+function togglePause(){if(G.state!=='playing')return;G.paused=!G.paused;document.getElementById('pause-modal').classList.toggle('hidden',!G.paused);}
+function toggleSpeed(){G.gameSpeed=G.gameSpeed===1?2:1;const btn=document.getElementById('speed-btn');btn.style.color=G.gameSpeed===2?'var(--accent2)':'';btn.style.borderColor=G.gameSpeed===2?'var(--accent2)':'';}
+
+// ==================== 事件绑定 ====================
+document.getElementById('start-btn').addEventListener('click',showLevelSelect);
+document.getElementById('back-to-menu').addEventListener('click',backToMenu);
+document.getElementById('start-wave-btn').addEventListener('click',startWave);
+document.getElementById('speed-btn').addEventListener('click',toggleSpeed);
+document.getElementById('pause-btn').addEventListener('click',togglePause);
+document.getElementById('quit-btn').addEventListener('click',()=>{if(confirm('确定要退出当前关卡吗？')){backToMenu();}});
+document.getElementById('resume-btn').addEventListener('click',togglePause);
+document.getElementById('pause-menu-btn').addEventListener('click',backToMenu);
+document.getElementById('story-continue').addEventListener('click',startGame);
+document.getElementById('result-menu').addEventListener('click',backToMenu);
+document.getElementById('tp-close').addEventListener('click',()=>{G.selectedTower=null;document.getElementById('tower-panel').classList.remove('show');});
+document.getElementById('tp-upgrade-btn').addEventListener('click',()=>{if(G.selectedTower)upgradeTower(G.selectedTower);});
+document.getElementById('tp-sell-btn').addEventListener('click',()=>{if(G.selectedTower)sellTower(G.selectedTower);});
+
+window.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(G.selectedTower){G.selectedTower=null;document.getElementById('tower-panel').classList.remove('show');}
+    else if(G.selectedTowerType){cancelGhost();}
+    else if(G.state==='playing'){togglePause();}
+  }else if(e.key===' '){
+    e.preventDefault();
+    if(G.state==='playing'&&!G.waveInProgress)startWave();
+  }else if(e.key>='1'&&e.key<='6'){
+    const types=Object.keys(TOWER_TYPES);const idx=parseInt(e.key)-1;
+    if(idx<types.length){document.querySelector(`.tower-btn[data-type="${types[idx]}"]`)?.click();}
+  }
+});
+
+// ==================== 启动 ====================
+initScene();initInput();animate();
+let loadProgress=0;const loadInterval=setInterval(()=>{loadProgress+=15+Math.random()*15;document.getElementById('loading-fill').style.width=Math.min(100,loadProgress)+'%';if(loadProgress>=100){clearInterval(loadInterval);setTimeout(()=>{document.getElementById('loading').style.opacity='0';setTimeout(()=>document.getElementById('loading').style.display='none',500);},300);}},100);
+</script>
+</body>
+</html>
