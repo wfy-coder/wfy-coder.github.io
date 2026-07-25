@@ -169,7 +169,7 @@ a:active {
     margin-top: 50px;           /* 与原 margin-top 一致 */
     z-index: 2;
     display: flex;
-    flex-wrap: nowrap;            /* 不允许换行 */
+    flex-wrap: nowrap;            /* 允许换行 */
     gap: 20px;                  /* 图片框间距 */
     justify-content: center;    /* 水平居中 */
     align-items: center;        /* 垂直居中（可选） */
@@ -295,3 +295,155 @@ a:active {
     line-height: 1.4;
 }
 
+
+/* ============================================================
+   「联系我」页面新增样式（追加，不修改原有任何规则）
+   ============================================================ */
+
+/* 顶部主标题 —— 复用 .site-title 的视觉风格，但独立类名避免冲突 */
+.contact-header {
+    position: fixed;
+    top: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 4.5rem;
+    font-weight: 300;
+    letter-spacing: 10px;
+    text-transform: uppercase;
+    pointer-events: none;
+    font-family: 'Montserrat', sans-serif;
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.25);
+    white-space: nowrap;
+}
+
+/* 副标题 / 简介 */
+.contact-intro {
+    position: fixed;
+    top: 210px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    color: rgba(255, 255, 255, 0.55);
+    font-family: 'Montserrat', 'Segoe UI', sans-serif;
+    font-size: 1rem;
+    font-weight: 300;
+    letter-spacing: 2px;
+    text-align: center;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+/* 联系方式列表容器 —— 居中 + 横向多列网格 */
+.contact-links {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(2, 340px);
+    gap: 18px 22px;
+    padding: 10px;
+    max-width: 92vw;
+    pointer-events: auto;
+}
+
+/* 单张联系方式卡片 */
+.contact-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 30px;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.85);
+    font-family: 'Montserrat', 'Segoe UI', sans-serif;
+    transition: all 0.25s ease;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(3px);
+}
+
+.contact-card:hover {
+    border-color: white;
+    background: rgba(0, 0, 0, 0.45);
+    box-shadow: 0 0 22px rgba(255, 255, 255, 0.18);
+    transform: translateY(-3px);
+    color: white;
+}
+
+.contact-card:active {
+    transform: translateY(-1px) scale(0.99);
+}
+
+/* 图标圆形容器 */
+.contact-card .icon {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+    color: white;
+    transition: all 0.25s ease;
+}
+
+.contact-card:hover .icon {
+    border-color: white;
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.3);
+}
+
+/* 文本区 */
+.contact-card .text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.4;
+    overflow: hidden;
+}
+
+.contact-card .name {
+    font-size: 1.05rem;
+    font-weight: 400;
+    letter-spacing: 1px;
+}
+
+.contact-card .handle {
+    font-size: 0.8rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.55);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.contact-card:hover .handle {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* ============== 响应式：小屏单列 ============== */
+@media (max-width: 768px) {
+    .contact-header {
+        font-size: 2.6rem;
+        letter-spacing: 6px;
+        top: 80px;
+    }
+    .contact-intro {
+        top: 160px;
+        font-size: 0.85rem;
+        padding: 0 20px;
+        white-space: normal;
+        max-width: 90vw;
+    }
+    .contact-links {
+        grid-template-columns: 280px;
+        top: 55%;
+    }
+}
