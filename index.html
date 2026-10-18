@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>欢迎</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -179,15 +179,6 @@
             }
 
             setup();
-
-            // 按钮交互
-            const btn = document.getElementById('actionBtn');
-            btn.addEventListener('click', () => {
-                btn.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    btn.style.transform = 'scale(1)';
-                }, 150);
-            });
 
         })();
     document.getElementById('actionBtn').addEventListener('click', function() {

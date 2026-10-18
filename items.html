@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>发现</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -26,6 +26,10 @@
     <a href="联系我/index.html" class="link-card" target="_blank" rel="noopener">
         <img src="联系我/icon2.png" alt="项目图标">
         <span>联系我</span>
+    </a>
+    <!-- 返回首页：同页跳转，不新开标签 -->
+    <a href="index.html" class="link-card">
+        <span>← 返回首页</span>
     </a>
 </div>
     
@@ -195,15 +199,6 @@
             }
 
             setup();
-
-            // 按钮交互
-            const btn = document.getElementById('actionBtn');
-            btn.addEventListener('click', () => {
-                btn.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    btn.style.transform = 'scale(1)';
-                }, 150);
-            });
 
         })();
     </script>
