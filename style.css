@@ -291,15 +291,20 @@ a:active {
 
 /* 卡片内联 SVG 图标：与 img 同样的 48×48 圆形外观，颜色跟随 currentColor */
 .link-card svg {
-    width: 48px;
-    height: 48px;
+    width: 34px;
+    height: 34px;
     flex: none;
-    padding: 12px;
+    padding: 7px;
     box-sizing: border-box;
     border-radius: 50%;
     border: 1px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
     color: #fff;
+}
+
+/* 圆角方块图标（如 Prify 标志）：覆盖默认的圆形裁剪 */
+.link-card img.square {
+    border-radius: 8px;
 }
 
 /* 卡片内文本 */
