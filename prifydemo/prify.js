@@ -819,7 +819,7 @@ $('#dockGrid').onclick = () => {
   if (t) t.scrollIntoView({ behavior: 'smooth' });
 };
 $('#ctaStart').onclick = () => setStart(true);
-$('#ctaDocs').onclick = () => snackbar('文档即将上线，先逛逛组件库吧');
+$('#ctaDocs').onclick = () => { location.href = 'md.html'; };   /* 相对路径跳转到文档页 */
 
 /* ================= Hero：鼠标视差 + 3D 倾斜（rAF 平滑插值） ================= */
 if (matchMedia('(pointer:fine)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
