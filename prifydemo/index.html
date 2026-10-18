@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-palette="violet">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#FEF7FF">
+<meta name="description" content="Prify Design 全部组件演示 — 一个页面装下外壳、表单、反馈、导航、小组件、图表、统计、营销区块与图标库。">
+<title>Prify Design · 全部组件演示</title>
+<script>
+/* ===== 防闪主题色：在 CSS 解析与首次绘制之前立即应用已保存的主题（必须留在 <head> 内联） ===== */
+(function(){
+  try{
+    var d=document.documentElement,t=localStorage.getItem('prify-theme');
+    if(!t) t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+    d.setAttribute('data-theme',t);
+    d.setAttribute('data-palette',localStorage.getItem('prify-palette')||'violet');
+  }catch(e){}
+})();
+</script>
+<link rel="stylesheet" href="prify.css">
+<style>
+/* ===== 本页专属样式：合并自 widget.html 与 iconlist.html 的页面样式 ===== */
+
+/* ---- 小组件（原 widget.html） ---- */
+.widget-grid.wide{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.wg-desktop{max-width:680px;margin-inline:auto}
+.wg-dl .wg-dl-top{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12.5px;margin-bottom:8px;color:var(--on-surface-var)}
+.wg-dl .wg-dl-top b{color:var(--on-surface);font-variant-numeric:tabular-nums}
+.wg-dl .linear-progress{height:8px}
+.wg-dl .btn{margin-top:14px}
+.wg-music .wg-top{display:flex;gap:12px;align-items:center}
+.wg-music .wg-art{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#8E24AA,#CE93D8);box-shadow:var(--elev-1);flex:none}
+.wg-music .wg-art .icon{width:22px;height:22px}
+.wg-music .wg-info{min-width:0}
+.wg-music .wg-title{font-size:14px;font-weight:640;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wg-music .wg-artist{font-size:12px;color:var(--on-surface-var);margin-top:2px}
+.wg-music .wg-bar{height:4px;border-radius:2px;background:var(--surface-c-highest);overflow:hidden;margin-top:14px}
+.wg-music .wg-bar i{display:block;height:100%;width:22%;border-radius:2px;background:var(--primary)}
+.wg-music.playing .wg-bar i{animation:wgPlay 16s linear forwards}
+@keyframes wgPlay{from{width:22%}to{width:100%}}
+.wg-music .wg-ctrl{display:flex;gap:8px;align-items:center;margin-top:14px}
+.wg-music .wg-time{margin-left:auto;font-size:11.5px;color:var(--on-surface-var);font-variant-numeric:tabular-nums}
+.wg-agenda .wg-item{display:flex;gap:12px;align-items:center;padding:9px 0;border-bottom:1px dashed var(--outline-var);font-size:13px;transition:transform .3s var(--ease)}
+.wg-agenda .wg-item:hover{transform:translateX(4px)}
+.wg-agenda .wg-item:last-child{border:none;padding-bottom:0}
+.wg-agenda .wg-time{font-size:12px;font-weight:640;color:var(--primary);font-variant-numeric:tabular-nums;width:44px;flex:none}
+.wg-agenda .wg-dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--primary)}
+.wg-agenda .wg-dot.t2{background:var(--tertiary)}
+.wg-agenda .wg-dot.t3{background:var(--error)}
+
+/* ---- 图标库（原 iconlist.html） ---- */
+.icon-sec{max-width:1240px;margin:0 auto;padding:112px 24px 56px}
+.icon-head{display:flex;flex-wrap:wrap;gap:18px 24px;align-items:flex-end;justify-content:space-between;margin-bottom:28px}
+.icon-kicker{font-size:12px;font-weight:800;letter-spacing:.18em;color:var(--primary);text-transform:uppercase}
+.icon-head h1{font-size:clamp(30px,4.6vw,46px);font-weight:800;letter-spacing:-.02em;margin:8px 0}
+.icon-sub{color:var(--on-surface-var);font-size:14.5px;max-width:58ch;line-height:1.65}
+.icon-sub code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;background:var(--surface-c);padding:1px 6px;border-radius:var(--r-xs)}
+.icon-search{display:flex;align-items:center;gap:8px;height:44px;padding:0 16px;min-width:250px;background:var(--surface-glass);border:1px solid var(--outline-var);border-radius:var(--r-full);backdrop-filter:blur(18px) saturate(180%);-webkit-backdrop-filter:blur(18px) saturate(180%);color:var(--on-surface-var);transition:border-color .2s,box-shadow .2s}
+.icon-search .icon{width:17px;height:17px}
+.icon-search input{border:0;outline:0;background:none;font:inherit;font-size:14px;width:100%;min-width:0;color:var(--on-surface);caret-color:var(--primary)}
+.icon-search input::placeholder{color:var(--on-surface-var);opacity:.75}
+.icon-search input::-webkit-search-cancel-button{-webkit-appearance:none}
+.icon-search:focus-within{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-glow)}
+.icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:14px}
+.ic-card{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;aspect-ratio:1;padding:14px 6px;overflow:hidden;border:1px solid var(--outline-var);border-radius:var(--r-lg);background:var(--surface-c);color:var(--on-surface);cursor:pointer;font:inherit;animation:icIn .6s var(--ease) backwards;animation-delay:calc(var(--i,0) * 18ms);transition:transform .28s var(--ease),background .28s,border-color .28s,box-shadow .28s}
+.ic-card .icon{width:30px;height:30px;color:var(--primary)}
+.ic-card code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.02em;color:var(--on-surface-var)}
+.ic-card:hover{transform:translateY(-4px);background:var(--surface-c-high);border-color:var(--primary);box-shadow:var(--elev-2),0 0 0 4px var(--primary-glow)}
+.ic-card:hover .icon{transform:scale(1.14)}
+.ic-card:active{transform:translateY(-1px) scale(.95)}
+.ic-card:focus-visible{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-glow)}
+.ic-card[hidden]{display:none}
+.ic-empty{margin:46px 0 10px;text-align:center;font-size:14px;color:var(--on-surface-var)}
+.ic-empty[hidden]{display:none}
+@keyframes icIn{from{opacity:0;transform:translateY(22px)}}
+@media (max-width:560px){.icon-sec{padding-top:96px}.icon-head{align-items:stretch}.icon-search{min-width:0;width:100%}}
+</style>
+</head>
+<body>
+
+<!-- ====== SVG 图标库（icons.js 同步注入，必须先于 prify.js） ====== -->
+<script src="icons.js"></script>
+
+<!-- ====== 启动画面（覆盖首次绘制，杜绝主题闪色；就绪后由 prify.js 淡出移除） ====== -->
+<div class="boot" id="boot">
+  <div class="boot-inner">
+    <div class="boot-logo"><i></i><i></i><i></i><i></i></div>
+    <div class="boot-name">Prify<span>Design</span></div>
+    <div class="boot-dots"><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="boot-ver">v1.0 · 全部组件演示 · Material You × Fluent Design</div>
+  </div>
+</div>
+
+<!-- 顶部加载/滚动进度（boot 期间是加载条，就绪后变滚动进度条） -->
+<div class="page-loader" id="pageLoader"><i></i></div>
+
+<!-- ====== 顶部导航 ======
+     本页把所有分区装进一个外壳：锚点全是页内真实 id；高亮由 prify.js 的通用 scroll-spy
+     收集页内链接自动接管（不写死分区）。「文档」指向单独的 Markdown 页 md.html。 -->
+<header class="topbar" id="topbar">
+  <div class="container">
+    <a class="brand" href="#top"><svg><use href="#i-logo"/></svg>Prify<em>Design</em></a>
+    <nav class="nav" id="navLinks">
+      <a href="#components" class="active">组件</a>
+      <a href="#forms">表单</a>
+      <a href="#feedback">反馈</a>
+      <a href="#navs">导航</a>
+      <a href="#widgets">小组件</a>
+      <a href="#charts">图表</a>
+      <a href="#icons">图标</a>
+      <a href="md.html">文档</a>
+    </nav>
+    <div class="top-actions">
+      <!-- #githubBtn → 真实仓库链接（新标签页打开），点击行为由 <a href> 承担、无需脚本 -->
+      <a class="github-btn rip" id="githubBtn" href="https://github.com/wfy-coder/prify-design" target="_blank" rel="noopener"><svg class="icon"><use href="#i-code"/></svg><span>GitHub 仓库</span></a>
+      <button class="icon-btn rip" id="themeBtn" aria-label="切换深浅主题"><svg class="icon" id="themeIcon"><use href="#i-moon"/></svg></button>
+      <button class="icon-btn rip menu-btn" id="menuBtn" aria-label="打开菜单"><svg class="icon"><use href="#i-menu"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<!-- ====== 移动端抽屉（列出全部分区） ====== -->
+<div class="scrim" id="drawerScrim"></div>
+<aside class="drawer" id="drawer" aria-label="导航抽屉">
+  <div class="drawer-head">
+    <a class="brand" href="#top"><svg><use href="#i-logo"/></svg>Prify<em>Design</em></a>
+    <button class="icon-btn rip" id="drawerClose" aria-label="关闭菜单"><svg class="icon"><use href="#i-close"/></svg></button>
+  </div>
+  <nav>
+    <a href="#components"><svg class="icon"><use href="#i-grid"/></svg>组件库</a>
+    <a href="#forms"><svg class="icon"><use href="#i-sliders"/></svg>表单控件</a>
+    <a href="#feedback"><svg class="icon"><use href="#i-bell"/></svg>反馈与状态</a>
+    <a href="#navs"><svg class="icon"><use href="#i-layers"/></svg>导航组件</a>
+    <a href="#widgets"><svg class="icon"><use href="#i-cpu"/></svg>小组件</a>
+    <a href="#charts"><svg class="icon"><use href="#i-chart"/></svg>图表</a>
+    <a href="#stats"><svg class="icon"><use href="#i-chart"/></svg>统计</a>
+    <a href="#features"><svg class="icon"><use href="#i-sparkles"/></svg>特性</a>
+    <a href="#timeline"><svg class="icon"><use href="#i-clock"/></svg>版本历程</a>
+    <a href="#pricing"><svg class="icon"><use href="#i-tag"/></svg>定价</a>
+    <a href="#team"><svg class="icon"><use href="#i-users"/></svg>团队</a>
+    <a href="#faq"><svg class="icon"><use href="#i-help"/></svg>常见问题</a>
+    <a href="#icons"><svg class="icon"><use href="#i-star"/></svg>图标库</a>
+    <a href="md.html"><svg class="icon"><use href="#i-pen"/></svg>文档</a>
+  </nav>
+  <div class="pdots-wrap" style="padding-top:18px;border-top:1px solid var(--outline-var)">
+    <div style="font-size:12px;font-weight:700;color:var(--on-surface-var);margin-bottom:10px">动态取色</div>
+    <!-- 读系统强调色圆钮 + 调色盘圆钮，排在色板圆点最前、与色板点同径 30×30；
+         #pdotsDrawer 用 display:contents 让圆点与圆钮并进同一个 flex 行。 -->
+    <div class="pdots">
+      <button class="icon-btn tonal rip" id="sysAccentBtn" data-sys-accent data-tip="读取系统强调色" aria-label="读取系统强调色" style="width:30px;height:30px"><svg class="icon" style="width:16px;height:16px"><use href="#i-devices"/></svg></button>
+      <button class="icon-btn tonal rip" data-color-pick data-tip="打开调色盘" aria-label="打开调色盘" style="width:30px;height:30px"><svg class="icon" style="width:16px;height:16px"><use href="#i-palette"/></svg></button>
+      <div id="pdotsDrawer" style="display:contents"></div>
+    </div>
+  </div>
+</aside>
+
+<!-- ====== 页面结构总览 ======
+     外壳（固定/覆盖层在文件后半段）：顶栏 → 抽屉 → 页脚 → Dock → 开始菜单 → 对话框 → Snackbar → FAB。
+     main 内分区：#hero / #components / #forms / #feedback / #navs / #widgets / #charts / #stats /
+     #features / #timeline / #pricing / #team / #faq / #icons / #cta。
+     id 冲突已处理：widget 区原 #components → #widgets，图标区原 #components → #icons；
+     widget 里与 Hero 重复的桌面窗口已删除（#heroClock/#miniTasks 等只保留 Hero 一份）；
+     #stats 与 #cta 各只保留一份。 -->
+<main id="top">
+  <!-- ====== Hero ====== -->
+  <section class="hero" id="hero">
+    <div class="hero-bg"><div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div></div>
+    <div class="container hero-grid">
+      <div>
+        <div class="hero-badge"><b>All-in-One</b>全部组件演示 · Material You × Fluent Design</div>
+        <h1><span class="hl"><span>一个系统</span></span><span class="hl"><span class="grad">两种设计灵魂</span></span></h1>
+        <!-- 打字机：prify.js 轮播文案写入 #typeWord，.caret 是闪烁光标 -->
+        <p class="hero-sub">Prify 将 Google Material 3 的动态色彩与 Windows 11 的亚克力质感熔于一炉，正在为你点亮 <span class="type" id="typeWord"></span><i class="caret"></i></p>
+        <div class="hero-cta">
+          <!-- #ctaStart → prify.js 打开开始菜单；#ctaDocs → snackbar 提示 -->
+          <button class="btn btn-filled btn-lg rip" id="ctaStart"><svg class="icon"><use href="#i-bolt"/></svg>打开开始菜单</button>
+          <button class="btn btn-tonal btn-lg rip" id="ctaDocs">查看文档<svg class="icon"><use href="#i-arrow-r"/></svg></button>
+        </div>
+        <div class="hero-meta">
+          <span><svg class="icon"><use href="#i-star"/></svg>GitHub 开源仓库</span>
+          <span><svg class="icon"><use href="#i-shield"/></svg>PolyForm 非商业许可</span>
+          <span><svg class="icon"><use href="#i-devices"/></svg>14 端全覆盖</span>
+        </div>
+      </div>
+      <!-- Win11 模拟桌面窗口：.desk 内三个迷你组件（时钟/环形/待办）由 prify.js 驱动 -->
+      <div class="win-wrap">
+        <div class="win-card hero-win" id="heroWin">
+          <div class="win-titlebar">
+            <span class="app-ico"></span>
+            <span class="win-title">Prify 概览 — 演示版 1.0</span>
+            <div class="win-controls">
+              <button class="wc-min" aria-label="最小化"></button>
+              <button class="wc-max" aria-label="最大化"></button>
+              <button class="wc-close" aria-label="关闭"></button>
+            </div>
+          </div>
+          <!-- .desk 加 .reveal：① 小组件入场动画 ② prify.js 只在 .reveal 进视口时填充 data-ring -->
+          <div class="desk reveal">
+            <div class="mini-widget mw-clock">
+              <div class="big" id="heroClock">--:--:--</div>
+              <div class="date" id="heroDate">加载中…</div>
+              <div class="zone"><span>上海 · GMT+8</span><span id="heroZone">🇨🇳</span></div>
+            </div>
+            <div class="mini-widget mw-ring">
+              <div class="ring-wrap">
+                <svg class="ring" viewBox="0 0 110 110"><circle class="bg" cx="55" cy="55" r="46"/><circle class="val" cx="55" cy="55" r="46" data-ring="92"/></svg>
+                <b>92%</b>
+              </div>
+              <div class="cap">系统健康度</div>
+            </div>
+            <div class="mini-widget mw-task">
+              <h4>今日待办 <span id="taskCount">0/5 已完成</span></h4>
+              <div id="miniTasks"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 组件库：按钮 ====== -->
+  <section id="components">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div class="overline">Component Gallery</div>
+        <h2>核心组件，开箱即用</h2>
+        <p>每个面板就是一段可直接复制的 HTML：类名即变体，交互由 prify.js 全局接管——直接点它们。</p>
+      </div>
+
+      <div class="comp-grid">
+        <!-- 按钮家族：.btn + 变体类，.rip 开启涟漪 -->
+        <div class="panel span7 reveal" id="btns">
+          <h3><svg class="icon"><use href="#i-bolt"/></svg>按钮家族</h3>
+          <p class="hint">Filled / Tonal / Outlined / Text / Elevated / Error，全部带涟漪、扫光与图标微动效。</p>
+          <div class="comp-label">常用按钮</div>
+          <div class="comp-row">
+            <button class="btn btn-filled rip">主要操作</button>
+            <button class="btn btn-tonal rip">次级操作</button>
+            <button class="btn btn-outlined rip">描边按钮</button>
+            <button class="btn btn-text rip">文本按钮</button>
+            <button class="btn btn-elevated rip">悬浮按钮</button>
+            <button class="btn btn-filled rip" disabled>禁用状态</button>
+          </div>
+          <div class="comp-label">带图标（含行为演示）</div>
+          <div class="comp-row">
+            <button class="btn btn-filled rip" id="dlBtn"><svg class="icon"><use href="#i-download"/></svg>下载 SDK</button>
+            <button class="btn btn-tonal rip" id="shareBtn"><svg class="icon"><use href="#i-share"/></svg>分享</button>
+            <button class="btn btn-error rip" id="dangerBtn"><svg class="icon"><use href="#i-trash"/></svg>危险操作</button>
+          </div>
+          <div class="comp-label">加载态</div>
+          <div class="comp-row">
+            <span class="spinner"></span>
+            <span style="font-size:13px;color:var(--on-surface-var)">按钮内嵌 &lt;span class="spinner"&gt; 即为加载态（见「下载 SDK」）</span>
+          </div>
+        </div>
+
+        <!-- 图标按钮 / FAB -->
+        <div class="panel span5 reveal">
+          <h3><svg class="icon"><use href="#i-star"/></svg>图标按钮与 FAB</h3>
+          <p class="hint">data-tip 悬停弹出气泡提示（CSS 驱动，无需 JS）。</p>
+          <div class="comp-label">图标按钮</div>
+          <div class="comp-row">
+            <button class="icon-btn rip" data-tip="点我试试心跳动画" id="likeBtn"><svg class="icon"><use href="#i-heart"/></svg></button>
+            <button class="icon-btn tonal rip" data-tip="Tonal 图标按钮"><svg class="icon"><use href="#i-star"/></svg></button>
+            <button class="icon-btn filled rip" data-tip="Filled 图标按钮"><svg class="icon"><use href="#i-bell"/></svg></button>
+          </div>
+          <div class="comp-label">FAB（定尺寸 + 圆角）</div>
+          <div class="comp-row">
+            <button class="btn btn-elevated rip" style="width:48px;height:48px;border-radius:16px;padding:0" aria-label="小 FAB"><svg class="icon" style="margin:auto"><use href="#i-plus"/></svg></button>
+            <button class="btn btn-filled rip" style="width:56px;height:56px;border-radius:16px;padding:0;box-shadow:var(--elev-2)" aria-label="大 FAB"><svg class="icon" style="margin:auto"><use href="#i-pen"/></svg></button>
+            <span style="width:12px"></span>
+            <span style="font-size:13px;color:var(--on-surface-var)">右下角固定 FAB 见 #fab（滚过 560px 后浮出）</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 表单控件 ====== -->
+  <section id="forms" style="background:var(--surface-c-low);border-block:1px solid var(--outline-var)">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div class="overline">Form Controls</div>
+        <h2>表单控件与状态</h2>
+        <p>搜索框、浮动标签、暴露式下拉、开关、单选复选与滑块——一段 Win11 窗口里的完整设置表单。</p>
+      </div>
+
+      <div class="comp-grid">
+        <!-- 表单窗口：Win11 标题栏 + 设置表单 -->
+        <div class="panel span7 win-card reveal" id="formWin" style="padding:0;border-color:color-mix(in srgb,var(--outline-var) 80%,transparent)">
+          <div class="win-titlebar"><span class="app-ico"></span><span class="win-title">账户设置 — Prify</span>
+            <div class="win-controls"><button class="wc-min"></button><button class="wc-max"></button><button class="wc-close"></button></div>
+          </div>
+          <div style="padding:22px">
+            <h3 style="font-size:16.5px;font-weight:640;margin-bottom:18px">表单控件</h3>
+            <!-- 搜索框：.searchbar = 图标 + input + kbd 快捷键提示 -->
+            <div class="searchbar" style="margin-bottom:14px">
+              <svg class="icon" style="color:var(--on-surface-var)"><use href="#i-search"/></svg>
+              <input type="text" placeholder="搜索组件、文档…" id="formSearch">
+              <kbd>Ctrl K</kbd>
+            </div>
+            <!-- 浮动标签字段：input 必须 placeholder=" "，label 的 for 指向 input 的 id -->
+            <div class="form-grid2">
+              <div class="tf"><input type="text" id="fUser" placeholder=" " autocomplete="off"><label for="fUser">用户名</label></div>
+              <div class="tf"><input type="email" id="fMail" placeholder=" "><label for="fMail">邮箱地址</label></div>
+            </div>
+            <!-- 暴露式下拉：.tf.sel 内是 button 字段；选项菜单 #teamList 由 prify.js 注入 body -->
+            <div class="tf sel" id="teamSel" style="margin-top:14px">
+              <button type="button" class="sel-field rip" id="teamField" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="teamList" aria-labelledby="teamLabel">
+                <span class="sel-ic" id="teamIc"></span>
+                <span class="sel-value" id="teamValue"></span>
+                <svg class="icon sel-arrow" style="width:16px;height:16px"><use href="#i-chevron-d"/></svg>
+              </button>
+              <label id="teamLabel">所属团队</label>
+            </div>
+            <input type="hidden" name="team" id="teamInput" value="">
+            <!-- M3 开关：label.m3-switch > input + .track > .thumb > svg（勾叉双 path，pathLength="1"） -->
+            <div style="margin-top:6px">
+              <div class="switch-row">
+                <div><div class="st">深色模式跟随系统</div><div class="sd">关闭时使用手动切换的主题</div></div>
+                <label class="m3-switch"><input type="checkbox" id="swFollow"><span class="track"><span class="thumb"><svg viewBox="0 0 16 16" aria-hidden="true"><path class="sw-x" pathLength="1" d="M11.6 4.4 4.4 11.6"/><path class="sw-x" pathLength="1" d="M4.4 4.4 11.6 11.6"/><path class="sw-chk" pathLength="1" d="M3.9 8.4 6.7 11.2 12.1 5.1"/></svg></span></span></label>
+              </div>
+              <div class="switch-row">
+                <div><div class="st">动态取色</div><div class="sd">从壁纸提取主题色</div></div>
+                <label class="m3-switch"><input type="checkbox" checked id="swDyn"><span class="track"><span class="thumb"><svg viewBox="0 0 16 16" aria-hidden="true"><path class="sw-x" pathLength="1" d="M11.6 4.4 4.4 11.6"/><path class="sw-x" pathLength="1" d="M4.4 4.4 11.6 11.6"/><path class="sw-chk" pathLength="1" d="M3.9 8.4 6.7 11.2 12.1 5.1"/></svg></span></span></label>
+              </div>
+            </div>
+            <!-- 单选/复选：.m3-radio 用 name 分组；.m3-check 的 .cb 内放 #i-check -->
+            <div class="comp-label">单选与复选</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <div>
+                <label class="m3-radio"><input type="radio" name="plan" checked><span class="rb"></span>社区版</label>
+                <label class="m3-radio"><input type="radio" name="plan"><span class="rb"></span>专业版</label>
+              </div>
+              <div>
+                <label class="m3-check"><input type="checkbox" checked><span class="cb"><svg><use href="#i-check"/></svg></span>接收更新</label>
+                <label class="m3-check"><input type="checkbox"><span class="cb"><svg><use href="#i-check"/></svg></span>加入内测</label>
+              </div>
+            </div>
+            <!-- 滑块：#radiusSlider 拖动会联动 #radiusOut，并把百分比写进轨道渐变用的自定义属性 -->
+            <div class="slider-wrap" style="margin-top:10px">
+              <div class="slider-head"><span>界面圆角缩放</span><output id="radiusOut">100%</output></div>
+              <input type="range" min="0" max="100" value="100" id="radiusSlider">
+            </div>
+            <!-- #formSubmit：未选团队 → .tf.invalid + shake + snackbar；通过 → spinner → 成功提示 -->
+            <button class="btn btn-filled rip" style="width:100%;margin-top:14px" id="formSubmit"><svg class="icon"><use href="#i-send"/></svg>保存设置</button>
+          </div>
+        </div>
+
+        <!-- 状态与校验：静态演示 invalid / 禁用 / 进度 -->
+        <div class="panel span5 reveal">
+          <h3><svg class="icon"><use href="#i-shield"/></svg>状态与校验</h3>
+          <p class="hint">校验失败给 .tf 加 .invalid（自动 shake 并把标签/边框染红）。</p>
+          <div class="comp-label">校验失败字段</div>
+          <div class="tf invalid"><input type="email" value="prify@"><label>邮箱地址</label></div>
+          <div class="comp-label">禁用态</div>
+          <div class="comp-row">
+            <button class="btn btn-filled rip" disabled>禁用按钮</button>
+            <label class="m3-check"><input type="checkbox" disabled><span class="cb"><svg><use href="#i-check"/></svg></span>禁用复选</label>
+          </div>
+          <div class="comp-label">进度指示</div>
+          <div class="progress-item"><div class="pl"><span>确定进度</span><b>45%</b></div><div class="linear-progress"><i style="width:45%"></i></div></div>
+          <div class="progress-item"><div class="pl"><span>不确定进度</span><b>…</b></div><div class="linear-progress indet"><i></i></div></div>
+          <p class="hint" style="margin-top:16px">Ctrl / Cmd + K 随时打开开始菜单，Esc 关闭所有浮层。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 反馈与状态 ====== -->
+  <section id="feedback">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div class="overline">Feedback</div>
+        <h2>反馈与状态提示</h2>
+        <p>横幅、Snackbar、对话框、徽章与工具提示：轻量的用 CSS，需要时序的交给 prify.js。</p>
+      </div>
+
+      <div class="comp-grid">
+        <!-- 横幅 Banner：.banner + 可选 .error -->
+        <div class="panel span4 reveal">
+          <h3><svg class="icon"><use href="#i-palette"/></svg>横幅 Banner</h3>
+          <p class="hint">默认为支持性横幅，加 .error 即切换为错误配色。</p>
+          <div class="banner">
+            <svg class="icon"><use href="#i-palette"/></svg>
+            <div><div class="bt">支持性横幅</div><div class="bd">检测到新色板「落日」，点击右下角色点即刻切换整套主题。</div></div>
+          </div>
+          <div class="banner error">
+            <svg class="icon"><use href="#i-shield"/></svg>
+            <div><div class="bt">错误横幅</div><div class="bd">同步失败，网络连接已超时，正在自动重试。</div></div>
+          </div>
+        </div>
+
+        <!-- 弹层反馈：Snackbar / Dialog 的触发按钮，实际标记在页面底部 -->
+        <div class="panel span4 reveal">
+          <h3><svg class="icon"><use href="#i-bell"/></svg>弹层反馈</h3>
+          <p class="hint">#snackbar 与 #dialogWrap 是全页单例，放在 body 末尾即可复用。</p>
+          <div class="comp-label">触发器</div>
+          <div class="comp-row" style="margin-bottom:8px">
+            <button class="btn btn-tonal rip btn-sm" id="sbBtn">显示 Snackbar</button>
+            <button class="btn btn-filled rip btn-sm" id="dlgBtn">打开对话框</button>
+          </div>
+          <div class="comp-label">调用方式</div>
+          <div class="banner" style="margin-bottom:0">
+            <svg class="icon"><use href="#i-code"/></svg>
+            <div><div class="bt">一行代码</div><div class="bd">snackbar('提示文案', '撤销', fn)；对话框用 setDialogContent({...}) 换内容。</div></div>
+          </div>
+        </div>
+
+        <!-- 徽章与提示：.badge 绝对定位挂载在 .has-badge 内；data-tip 纯 CSS 气泡 -->
+        <div class="panel span4 reveal" id="badges">
+          <h3><svg class="icon"><use href="#i-help"/></svg>徽章与提示</h3>
+          <p class="hint">Badge 叠在按钮右上角，支持数字与文本两种内容。</p>
+          <div class="badge-demo">
+            <span class="has-badge"><button class="icon-btn tonal rip" data-tip="通知"><svg class="icon"><use href="#i-bell"/></svg></button><span class="badge">9</span></span>
+            <span class="has-badge"><button class="icon-btn rip" data-tip="消息"><svg class="icon"><use href="#i-mail"/></svg></button><span class="badge" style="background:var(--primary)">NEW</span></span>
+            <span class="has-badge"><button class="icon-btn rip" data-tip="待办"><svg class="icon"><use href="#i-calendar"/></svg></button><span class="badge">3</span></span>
+            <span data-tip="把鼠标悬停在这里试试 Tooltip →" style="font-size:13px;color:var(--on-surface-var);cursor:help;border-bottom:1px dashed var(--outline)">什么是 Tooltip？</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 导航组件 ====== -->
+  <section id="navs" style="background:var(--surface-c-low);border-block:1px solid var(--outline-var)">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div class="overline">Navigation</div>
+        <h2>导航与内容组织</h2>
+        <p>标签页、分段控件与手风琴：三套最常见的页内导航，指示条与展开动画全部接管。</p>
+      </div>
+
+      <div class="comp-grid">
+        <!-- Tabs：.tab[data-pane] 指向 .tabpane 的 id，#tabInd 是滑动指示条 -->
+        <div class="panel span7 reveal">
+          <h3><svg class="icon"><use href="#i-layers"/></svg>标签页 Tabs</h3>
+          <p class="hint">M3 Primary Tabs，指示条平滑滑动过渡。</p>
+          <div class="tabs" role="tablist">
+            <button class="tab active" data-pane="tp1" role="tab">成员</button>
+            <button class="tab" data-pane="tp2" role="tab">动态</button>
+            <button class="tab" data-pane="tp3" role="tab">标签</button>
+            <span class="tab-ind" id="tabInd"></span>
+          </div>
+          <div class="tabpane active" id="tp1">
+            <div class="member-row"><span class="avatar" style="background:linear-gradient(135deg,#7C4DFF,#B388FF)">A</span><div><div class="mn">成员 A</div><div class="mt">在线</div></div></div>
+            <div class="member-row"><span class="avatar" style="background:linear-gradient(135deg,#FF7043,#FFAB91)">B</span><div><div class="mn">成员 B</div><div class="mt">会议中</div></div></div>
+            <div class="member-row"><span class="avatar" style="background:linear-gradient(135deg,#26A69A,#80CBC4)">C</span><div><div class="mn">成员 C</div><div class="mt">离开 12 分钟</div></div></div>
+          </div>
+          <div class="tabpane" id="tp2">
+            <div class="feed-row"><svg class="icon"><use href="#i-sparkles"/></svg><div><p>Prify AI 自动为 3 个组件补齐了暗色主题令牌。</p><time>10 分钟前</time></div></div>
+            <div class="feed-row"><svg class="icon"><use href="#i-code"/></svg><div><p>成员 D 提交了 a1b2c3d：修复滑块在触屏上的拖拽偏移。</p><time>1 小时前</time></div></div>
+          </div>
+          <!-- .chip-cloud：点击 chip 切换 .selected（选中时浮现 #i-check） -->
+          <div class="tabpane" id="tp3">
+            <div class="chip-cloud">
+              <span class="chip selected"><svg class="icon"><use href="#i-check"/></svg>设计系统</span>
+              <span class="chip">Material 3</span><span class="chip">Fluent</span><span class="chip">动态取色</span>
+              <span class="chip">亚克力</span><span class="chip">无障碍</span><span class="chip">深色模式</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Segmented：容器内必须有 .seg-thumb + 若干 .seg-btn（第一个加 .selected） -->
+        <div class="panel span5 reveal">
+          <h3><svg class="icon"><use href="#i-grid"/></svg>分段控件 Segmented</h3>
+          <p class="hint">色块吸附到 .selected 按钮，宽度/位置随窗口 resize 重算。</p>
+          <div class="segmented">
+            <span class="seg-thumb"></span>
+            <button class="seg-btn selected rip"><svg class="icon"><use href="#i-check"/></svg>日</button>
+            <button class="seg-btn rip"><svg class="icon"><use href="#i-check"/></svg>周</button>
+            <button class="seg-btn rip"><svg class="icon"><use href="#i-check"/></svg>月</button>
+          </div>
+          <div class="comp-label">用法</div>
+          <div class="banner" style="margin-bottom:0">
+            <svg class="icon"><use href="#i-code"/></svg>
+            <div><div class="bt">结构</div><div class="bd">.segmented &gt; .seg-thumb + .seg-btn*（首个 .selected）；无 id 的分段控件只做选中切换。</div></div>
+          </div>
+        </div>
+
+        <!-- 手风琴：.acc-head 点击切换父级 .open -->
+        <div class="panel span12 reveal">
+          <h3><svg class="icon"><use href="#i-clock"/></svg>手风琴 Accordion</h3>
+          <p class="hint">展开状态 = .acc.open，标题栏 + 图标旋转 + 内容行高同时过渡。</p>
+          <div class="acc open">
+            <button class="acc-head">Prify 和直接用 MUI / Fluent UI 有什么区别？<svg class="icon"><use href="#i-plus"/></svg></button>
+            <div class="acc-body"><div><p>那些库各自忠于一种平台语言。Prify 在令牌层做了统一抽象：同一套语义色、圆角、动效曲线，既能渲染成 M3 的表达，也能渲染成 Fluent 的表达。</p></div></div>
+          </div>
+          <div class="acc" style="margin-top:12px">
+            <button class="acc-head">这一页包含哪些东西？<svg class="icon"><use href="#i-plus"/></svg></button>
+            <div class="acc-body"><div><p>外壳加本页展示的全部组件：按钮、表单、反馈、导航、小组件、图表、统计、营销区块与图标库。</p></div></div>
+          </div>
+          <div class="acc" style="margin-top:12px">
+            <button class="acc-head">组件之间如何复用 JS？<svg class="icon"><use href="#i-plus"/></svg></button>
+            <div class="acc-body"><div><p>prify.js 按 id/class/属性钩子全局接管：缺 id 时静默降级（游离 div 兜底），因此同一套脚本可以服务多个页面。</p></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 小组件（原 widget.html，去掉与 Hero 重复的桌面窗口） ====== -->
+  <section id="widgets">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div class="overline">Widgets</div>
+        <h2>Win11 风格小组件</h2>
+        <p>顶部的桌面窗口由 prify.js 驱动（时钟与待办），下方卡片里下载与音乐自带内联脚本。</p>
+      </div>
+
+      <!-- 小组件卡片网格：.wide 是本页 <style> 里的自适应列宽版本 -->
+      <div class="widget-grid wide reveal">
+        <!-- 天气卡片 -->
+        <div class="widget w-weather">
+          <h4><svg class="icon"><use href="#i-cloud-sun"/></svg>天气 · 上海</h4>
+          <div class="sun"><svg><use href="#i-cloud-sun"/></svg></div>
+          <div class="temp">24°</div>
+          <div class="cond">晴间多云 · 空气优</div>
+        </div>
+
+        <!-- 性能监控：.linear-progress 用内联 width 表示数值，.indet 为不确定进度 -->
+        <div class="widget">
+          <h4><svg class="icon"><use href="#i-cpu"/></svg>性能监控</h4>
+          <div class="progress-item"><div class="pl"><span>CPU</span><b>38%</b></div><div class="linear-progress"><i style="width:38%"></i></div></div>
+          <div class="progress-item"><div class="pl"><span>内存</span><b>61%</b></div><div class="linear-progress"><i style="width:61%"></i></div></div>
+          <div class="progress-item"><div class="pl"><span>同步中</span><b>…</b></div><div class="linear-progress indet"><i></i></div></div>
+        </div>
+
+        <!-- 下载进度：id 用 wgDl* 前缀，避开 prify.js 滑块联动写入的 #dlBar/#dlPct -->
+        <div class="widget wg-dl">
+          <h4><svg class="icon"><use href="#i-download"/></svg>下载任务</h4>
+          <div class="wg-dl-top"><span>prify-widgets.zip</span><b id="wgDlPct">0%</b></div>
+          <div class="linear-progress"><i id="wgDlBar" style="width:0%"></i></div>
+          <button class="btn btn-tonal rip btn-sm" id="wgDlBtn" style="width:100%"><svg class="icon"><use href="#i-download"/></svg>开始下载</button>
+        </div>
+
+        <!-- 音乐播放器：.playing 时进度条走 CSS 动画（页尾内联脚本切换类名） -->
+        <div class="widget wg-music" id="wgMusic">
+          <h4><svg class="icon"><use href="#i-music"/></svg>正在播放</h4>
+          <div class="wg-top">
+            <div class="wg-art"><svg class="icon"><use href="#i-music"/></svg></div>
+            <div class="wg-info">
+              <div class="wg-title">Aurora Drift</div>
+              <div class="wg-artist">Prify Ensemble · 电子</div>
+            </div>
+          </div>
+          <div class="wg-bar"><i></i></div>
+          <div class="wg-ctrl">
+            <button class="icon-btn filled rip" id="wgPlay" aria-label="播放/暂停"><svg class="icon"><use href="#i-music"/></svg></button>
+            <button class="icon-btn tonal rip" data-tip="收藏"><svg class="icon"><use href="#i-heart"/></svg></button>
+            <span class="wg-time">1:24 / 6:08</span>
+          </div>
+        </div>
+
+        <!-- 快捷开关：.m3-switch 是纯 CSS 组件，不依赖任何 JS id -->
+        <div class="widget">
+          <h4><svg class="icon"><use href="#i-sliders"/></svg>快捷设置</h4>
+          <div class="switch-row">
+            <div><div class="st">勿扰模式</div><div class="sd">暂停全部通知</div></div>
+            <label class="m3-switch"><input type="checkbox"><span class="track"><span class="thumb"><svg viewBox="0 0 16 16" aria-hidden="true"><path class="sw-x" pathLength="1" d="M11.6 4.4 4.4 11.6"/><path class="sw-x" pathLength="1" d="M4.4 4.4 11.6 11.6"/><path class="sw-chk" pathLength="1" d="M3.9 8.4 6.7 11.2 12.1 5.1"/></svg></span></span></label>
+          </div>
+          <div class="switch-row">
+            <div><div class="st">自动同步</div><div class="sd">仅在 Wi-Fi 下</div></div>
+            <label class="m3-switch"><input type="checkbox" checked><span class="track"><span class="thumb"><svg viewBox="0 0 16 16" aria-hidden="true"><path class="sw-x" pathLength="1" d="M11.6 4.4 4.4 11.6"/><path class="sw-x" pathLength="1" d="M4.4 4.4 11.6 11.6"/><path class="sw-chk" pathLength="1" d="M3.9 8.4 6.7 11.2 12.1 5.1"/></svg></span></span></label>
+          </div>
+        </div>
+
+        <!-- 日程：本页 <style> 中的 .wg-agenda 列表样式 -->
+        <div class="widget wg-agenda">
+          <h4><svg class="icon"><use href="#i-calendar"/></svg>今日日程</h4>
+          <div class="wg-item"><span class="wg-time">10:00</span><span class="wg-dot"></span>设计走查 · 会议室 A</div>
+          <div class="wg-item"><span class="wg-time">14:30</span><span class="wg-dot t2"></span>动效评审（线上）</div>
+          <div class="wg-item"><span class="wg-time">17:00</span><span class="wg-dot t3"></span>发布例会</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 图表（原 widget.html） ====== -->
+  <section id="charts" style="background:var(--surface-c-low);border-block:1px solid var(--outline-var)">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div class="overline">Charts</div>
+        <h2>纯 CSS/JS 图表</h2>
+        <p>柱状图与折线图不依赖任何图表库：SVG polyline + CSS 动画绘制，分段控件切换数据周期。</p>
+      </div>
+
+      <div class="comp-grid">
+        <div class="panel span12 win-card reveal" style="padding:0;border-color:color-mix(in srgb,var(--outline-var) 80%,transparent)">
+          <div class="win-titlebar"><span class="app-ico"></span><span class="win-title">数据分析 — usage.prify.design</span>
+            <div class="win-controls"><button class="wc-min"></button><button class="wc-max"></button><button class="wc-close"></button></div>
+          </div>
+          <div style="padding:clamp(20px,2.6vw,30px)">
+            <div class="chart-head">
+              <div>
+                <h3 style="font-size:16.5px;font-weight:640">组件调用趋势</h3>
+                <p class="hint" style="margin:2px 0 0">过去 12 个周期的数据，切换周期查看（纯 CSS/JS 绘制）</p>
+              </div>
+              <!-- 分段控件 #chartSeg：prify.js 监听点击，按 data-key（d/w/m）重绘 #bars 与 #barLabels -->
+              <div class="segmented" id="chartSeg">
+                <span class="seg-thumb"></span>
+                <button class="seg-btn selected rip" data-key="d"><svg class="icon"><use href="#i-check"/></svg>日</button>
+                <button class="seg-btn rip" data-key="w"><svg class="icon"><use href="#i-check"/></svg>周</button>
+                <button class="seg-btn rip" data-key="m"><svg class="icon"><use href="#i-check"/></svg>月</button>
+              </div>
+            </div>
+            <div class="chart-legend"><span><i style="background:var(--primary)"></i>本周期</span><span><i style="background:var(--outline)"></i>上一周期</span></div>
+            <div class="bars" id="bars"></div>
+            <div class="bar-labels" id="barLabels"></div>
+            <div class="line-chart-wrap">
+              <h4 style="font-size:14px;font-weight:640;margin-bottom:12px">周活跃指标（万，示例）</h4>
+              <div class="lc-stage">
+                <svg class="line-chart" viewBox="0 0 600 220" preserveAspectRatio="none" style="height:190px">
+                  <defs><linearGradient id="lcFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="var(--primary)" stop-opacity=".28"/><stop offset="1" stop-color="var(--primary)" stop-opacity="0"/>
+                  </linearGradient></defs>
+                  <path id="lcArea" fill="url(#lcFill)"></path>
+                  <polyline id="lcPrev" class="lc-line l2" points=""></polyline>
+                  <polyline id="lcMain" class="lc-line" points="" pathLength="1" stroke="var(--primary)"></polyline>
+                </svg>
+                <div class="lc-dots" id="lcDots"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 统计（合并 landing 的统计带 + Logo 墙） ====== -->
+  <section id="stats">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div class="overline">By the numbers</div>
+        <h2>数字会说话</h2>
+        <p>滚动到视口时从 0 计数到目标值——.stagger 负责子项依次入场，data-count 负责数值动画。</p>
+      </div>
+      <div class="stats-band stagger">
+        <div class="stat"><div class="num" data-count="2.3" data-decimals="1" data-suffix="M+">0</div><div class="lab">累计下载量（示例）</div></div>
+        <div class="stat"><div class="num" data-count="128" data-suffix="+">0</div><div class="lab">开源组件</div></div>
+        <div class="stat"><div class="num" data-count="18" data-suffix="k">0</div><div class="lab">GitHub Star（示例）</div></div>
+        <div class="stat"><div class="num" data-count="99.9" data-decimals="1" data-suffix="%">0</div><div class="lab">服务可用性</div></div>
+      </div>
+      <p style="text-align:center;font-size:13px;color:var(--on-surface-var);margin-bottom:16px" class="reveal">示例 Logo 墙（占位，替换为你的合作方）</p>
+      <div class="logos stagger">
+        <span>ACME</span><span>NOVA</span><span>星环科技</span><span>CloudX</span><span>Pixel·P</span><span>Kite</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 特性（原 landing.html） ======
+       分类筛选：容器 [data-feat-chips]，按钮 .chip[data-f]；卡片网格 [data-feat-grid]，卡片 [data-cat]。 -->
+  <section id="features" style="background:var(--surface-c-low);border-block:1px solid var(--outline-var)">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div class="overline">Why Prify</div>
+        <h2>为「融合」而生</h2>
+        <p>不是两套规范的拼接，而是一次真正的化学反应。点击下方筛选标签试试：</p>
+      </div>
+      <div class="comp-row reveal" style="margin-bottom:28px" data-feat-chips>
+        <button class="chip selected rip" data-f="all"><svg class="icon"><use href="#i-check"/></svg>全部</button>
+        <button class="chip rip" data-f="design"><svg class="icon"><use href="#i-check"/></svg>设计</button>
+        <button class="chip rip" data-f="perf"><svg class="icon"><use href="#i-check"/></svg>性能</button>
+        <button class="chip rip" data-f="safe"><svg class="icon"><use href="#i-check"/></svg>安全</button>
+        <button class="chip rip" data-f="ai"><svg class="icon"><use href="#i-check"/></svg>智能</button>
+      </div>
+      <div class="feat-grid stagger" data-feat-grid>
+        <div class="feat-card" data-cat="design">
+          <span class="feat-tag">设计</span>
+          <div class="feat-ico"><svg class="icon"><use href="#i-palette"/></svg></div>
+          <h3>动态取色引擎</h3><p>从壁纸或品牌色一键生成完整 M3 色板——tonal 色阶、对比度校准、亮暗双主题，全自动。</p>
+        </div>
+        <div class="feat-card" data-cat="design">
+          <span class="feat-tag">设计</span>
+          <div class="feat-ico"><svg class="icon"><use href="#i-layers"/></svg></div>
+          <h3>亚克力材质层</h3><p>多层 backdrop 模糊、噪点与高光模拟 Win11 Acrylic，60fps 下滑不掉帧。</p>
+        </div>
+        <div class="feat-card" data-cat="perf">
+          <span class="feat-tag">性能</span>
+          <div class="feat-ico"><svg class="icon"><use href="#i-bolt"/></svg></div>
+          <h3>弹簧物理动效</h3><p>所有过渡统一使用 emphasized 缓动曲线与弹簧参数，指哪打哪，绝无"网页感"。</p>
+        </div>
+        <div class="feat-card" data-cat="perf">
+          <span class="feat-tag">性能</span>
+          <div class="feat-ico"><svg class="icon"><use href="#i-devices"/></svg></div>
+          <h3>全端自适应</h3><p>一套令牌驱动 14 个平台：从 4 寸手环到 32 寸带鱼屏，布局自动重排。</p>
+        </div>
+        <div class="feat-card" data-cat="safe">
+          <span class="feat-tag">安全</span>
+          <div class="feat-ico"><svg class="icon"><use href="#i-shield"/></svg></div>
+          <h3>沙箱化组件</h3><p>每个组件运行在独立 Shadow DOM 沙箱中，样式零污染、零逃逸。</p>
+        </div>
+        <div class="feat-card" data-cat="safe">
+          <span class="feat-tag">安全</span>
+          <div class="feat-ico"><svg class="icon"><use href="#i-user"/></svg></div>
+          <h3>无障碍优先</h3><p>WCAG 2.2 AA 全量通过，支持动态字体缩放、高对比度与完整键鼠导航。</p>
+        </div>
+        <div class="feat-card" data-cat="ai">
+          <span class="feat-tag">智能</span>
+          <div class="feat-ico"><svg class="icon"><use href="#i-sparkles"/></svg></div>
+          <h3>Prify AI 助手</h3><p>描述你要的界面，AI 直接生成符合规范的组件代码与主题令牌。</p>
+        </div>
+        <div class="feat-card" data-cat="ai">
+          <span class="feat-tag">智能</span>
+          <div class="feat-ico"><svg class="icon"><use href="#i-globe"/></svg></div>
+          <h3>离线优先</h3><p>PWA + 本地增量同步，断网 72 小时后重新上线，冲突合并零丢失。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 时间线（原 landing.html） ====== -->
+  <section id="timeline">
+    <div class="container">
+      <div class="sec-head reveal" style="margin-inline:auto;text-align:center;max-width:640px">
+        <div class="overline" style="justify-content:center">Roadmap</div>
+        <h2>五年，五次进化</h2>
+        <p style="margin-inline:auto">从一张色板到一套全端设计语言。</p>
+      </div>
+      <div class="timeline stagger">
+        <div class="tl-item"><div class="tl-year">2021</div>
+          <div class="tl-card"><h3>初生 · Material You</h3><p>Google 发布动态取色，当晚写下 Prify 的第一枚颜色令牌。</p></div></div>
+        <div class="tl-item"><div class="tl-year">2022</div>
+          <div class="tl-card"><h3>融合 · Fluent 降临</h3><p>引入 Win11 亚克力材质、圆角窗口与任务栏范式，两个世界第一次握手。</p></div></div>
+        <div class="tl-item"><div class="tl-year">2023</div>
+          <div class="tl-card"><h3>动效引擎</h3><p>自研弹簧物理动效系统，所有组件共享同一套 emphasized 曲线。</p></div></div>
+        <div class="tl-item"><div class="tl-year">2024</div>
+          <div class="tl-card"><h3>AI 原生</h3><p>Prify AI 上线：一句话生成组件代码，设计师与工程师共用同一门语言。</p></div></div>
+        <div class="tl-item"><div class="tl-year">2026</div>
+          <div class="tl-card"><h3>全端统一（当前版本）</h3><p>14 端体验完全一致，组件按需加载，首屏体积低至 41KB。</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 定价（原 landing.html）
+       月/年切换：开关 input 带 data-billing，价格 span 带 data-price + data-month/data-year。 -->
+  <section id="pricing" style="background:var(--surface-c-low);border-block:1px solid var(--outline-var)">
+    <div class="container">
+      <div class="sec-head reveal" style="margin-inline:auto;text-align:center;max-width:640px">
+        <div class="overline" style="justify-content:center">Pricing</div>
+        <h2>简单透明的定价</h2>
+        <p style="margin-inline:auto">从个人项目到团队协作。</p>
+      </div>
+      <div class="price-toggle reveal">
+        <span style="font-weight:600">月付</span>
+        <label class="m3-switch"><input type="checkbox" data-billing><span class="track"><span class="thumb"><svg viewBox="0 0 16 16" aria-hidden="true"><path class="sw-x" pathLength="1" d="M11.6 4.4 4.4 11.6"/><path class="sw-x" pathLength="1" d="M4.4 4.4 11.6 11.6"/><path class="sw-chk" pathLength="1" d="M3.9 8.4 6.7 11.2 12.1 5.1"/></svg></span></span></label>
+        <span style="font-weight:600">年付</span>
+        <span class="save">省 20%</span>
+      </div>
+      <div class="price-grid stagger">
+        <div class="price-card">
+          <div class="pc-name">社区版</div>
+          <div class="pc-price"><span class="cur">¥</span><span class="val">0</span><span class="per">/ 永久</span></div>
+          <div class="pc-desc">个人项目与开源用途</div>
+          <ul class="pc-list">
+            <li><svg class="icon"><use href="#i-check"/></svg>64 个基础组件</li>
+            <li><svg class="icon"><use href="#i-check"/></svg>亮 / 暗双主题</li>
+            <li><svg class="icon"><use href="#i-check"/></svg>社区论坛支持</li>
+            <li><svg class="icon"><use href="#i-check"/></svg>PolyForm 非商业许可</li>
+          </ul>
+          <button class="btn btn-outlined rip" data-plan="社区版">免费开始</button>
+        </div>
+        <div class="price-card promo">
+          <div class="promo-badge">最受欢迎</div>
+          <div class="pc-name">专业版</div>
+          <div class="pc-price"><span class="cur">¥</span><span class="val" data-price data-month="39" data-year="31">39</span><span class="per">/ 月</span></div>
+          <div class="pc-desc">专业开发者与小团队</div>
+          <ul class="pc-list">
+            <li><svg class="icon"><use href="#i-check"/></svg>全部 128+ 组件</li>
+            <li><svg class="icon"><use href="#i-check"/></svg>动态取色引擎</li>
+            <li><svg class="icon"><use href="#i-check"/></svg>Figma 完整套件</li>
+            <li><svg class="icon"><use href="#i-check"/></svg>Prify AI 助手</li>
+            <li><svg class="icon"><use href="#i-check"/></svg>工单优先响应</li>
+          </ul>
+          <button class="btn rip" style="background:var(--on-primary);color:var(--primary)" data-plan="专业版">立即订阅</button>
+        </div>
+        <div class="price-card">
+          <div class="pc-name">企业版</div>
+          <div class="pc-price"><span class="cur" style="font-size:30px;font-weight:600">定制</span></div>
+          <div class="pc-desc">大型组织与跨端产品线</div>
+          <ul class="pc-list">
+            <li><svg class="icon"><use href="#i-check"/></svg>私有化部署</li>
+            <li><svg class="icon"><use href="#i-check"/></svg>SLA 99.99%</li>
+            <li><svg class="icon"><use href="#i-check"/></svg>专属设计师驻场</li>
+            <li><svg class="icon"><use href="#i-check"/></svg>团队培训与审计</li>
+          </ul>
+          <button class="btn btn-tonal rip" data-plan="企业版">联系我们</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 团队（原 landing.html） ====== -->
+  <section id="team">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div class="overline">Team</div>
+        <h2>团队卡片示例</h2>
+        <p>四张成员占位卡，替换成你的团队成员。悬停看看社交按钮的交错入场。</p>
+      </div>
+      <div class="team-grid stagger">
+        <div class="team-card">
+          <span class="avatar" style="background:linear-gradient(135deg,#7C4DFF,#B388FF)">A</span>
+          <h3>成员 A</h3><div class="role">职位 · 一句话头衔</div>
+          <p>一句简介占位，替换为成员真实介绍。</p>
+          <div class="team-social">
+            <button class="icon-btn rip" data-tip="邮件"><svg class="icon"><use href="#i-mail"/></svg></button>
+            <button class="icon-btn rip" data-tip="主页"><svg class="icon"><use href="#i-globe"/></svg></button>
+            <button class="icon-btn rip" data-tip="代码"><svg class="icon"><use href="#i-code"/></svg></button>
+          </div>
+        </div>
+        <div class="team-card">
+          <span class="avatar" style="background:linear-gradient(135deg,#FF7043,#FFAB91)">B</span>
+          <h3>成员 B</h3><div class="role">职位 · 一句话头衔</div>
+          <p>一句简介占位，替换为成员真实介绍。</p>
+          <div class="team-social">
+            <button class="icon-btn rip" data-tip="邮件"><svg class="icon"><use href="#i-mail"/></svg></button>
+            <button class="icon-btn rip" data-tip="主页"><svg class="icon"><use href="#i-globe"/></svg></button>
+            <button class="icon-btn rip" data-tip="代码"><svg class="icon"><use href="#i-code"/></svg></button>
+          </div>
+        </div>
+        <div class="team-card">
+          <span class="avatar" style="background:linear-gradient(135deg,#26A69A,#80CBC4)">C</span>
+          <h3>成员 C</h3><div class="role">职位 · 一句话头衔</div>
+          <p>一句简介占位，替换为成员真实介绍。</p>
+          <div class="team-social">
+            <button class="icon-btn rip" data-tip="邮件"><svg class="icon"><use href="#i-mail"/></svg></button>
+            <button class="icon-btn rip" data-tip="主页"><svg class="icon"><use href="#i-globe"/></svg></button>
+            <button class="icon-btn rip" data-tip="代码"><svg class="icon"><use href="#i-code"/></svg></button>
+          </div>
+        </div>
+        <div class="team-card">
+          <span class="avatar" style="background:linear-gradient(135deg,#5C6BC0,#9FA8DA)">D</span>
+          <h3>成员 D</h3><div class="role">职位 · 一句话头衔</div>
+          <p>一句简介占位，替换为成员真实介绍。</p>
+          <div class="team-social">
+            <button class="icon-btn rip" data-tip="邮件"><svg class="icon"><use href="#i-mail"/></svg></button>
+            <button class="icon-btn rip" data-tip="主页"><svg class="icon"><use href="#i-globe"/></svg></button>
+            <button class="icon-btn rip" data-tip="代码"><svg class="icon"><use href="#i-code"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== FAQ（原 landing.html；.acc-head 点击切换父级 .open） ====== -->
+  <section id="faq" style="background:var(--surface-c-low);border-block:1px solid var(--outline-var)">
+    <div class="container">
+      <div class="sec-head reveal" style="margin-inline:auto;text-align:center;max-width:640px">
+        <div class="overline" style="justify-content:center">FAQ</div>
+        <h2>常见问题</h2>
+      </div>
+      <div class="faq-list stagger">
+        <div class="acc open">
+          <button class="acc-head">Prify 和直接用 MUI / Fluent UI 有什么区别？<svg class="icon"><use href="#i-plus"/></svg></button>
+          <div class="acc-body"><div><p>那些库各自忠于一种平台语言。Prify 在令牌层做了统一抽象：同一套语义色、圆角、动效曲线，既能渲染成 M3 的表达，也能渲染成 Fluent 的表达，还能像本页一样把两者揉在一起。</p></div></div>
+        </div>
+        <div class="acc">
+          <button class="acc-head">支持哪些框架？<svg class="icon"><use href="#i-plus"/></svg></button>
+          <div class="acc-body"><div><p>内核是标准 Web Components（Shadow DOM），天然框架无关；官方提供 React / Vue / Svelte 的类型包装与 Figma 双向同步插件。</p></div></div>
+        </div>
+        <div class="acc">
+          <button class="acc-head">动态取色如何保证可访问性？<svg class="icon"><use href="#i-plus"/></svg></button>
+          <div class="acc-body"><div><p>取色引擎会计算 HCT 色彩空间的 tonal 色阶，并强制校验文本对比度 ≥ 4.5:1（AA）。不达标的组合会被自动降级到邻近 tone，你永远拿到的都是合法色板。</p></div></div>
+        </div>
+        <div class="acc">
+          <button class="acc-head">商业项目怎么授权？<svg class="icon"><use href="#i-plus"/></svg></button>
+          <div class="acc-body"><div><p>本项目采用 PolyForm Noncommercial 1.0.0：非商业用途免费，商业用途需事先取得作者书面授权。专业版 / 企业版增加的是闭源高级组件、Figma 套件与 SLA 支持，按席位订阅，随时可退订。</p></div></div>
+        </div>
+        <div class="acc">
+          <button class="acc-head">组件包体积会不会很大？<svg class="icon"><use href="#i-plus"/></svg></button>
+          <div class="acc-body"><div><p>全量约 210KB gzip，但支持按需 tree-shaking 与单组件 CDN 引入。一个只含按钮和输入框的页面，实测增量仅 11KB。</p></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 图标库（原 iconlist.html；卡片由页尾内联脚本内联 symbol 以支持点击重播） ====== -->
+  <section id="icons" class="icon-sec">
+    <div class="icon-head">
+      <div class="icon-titles">
+        <span class="icon-kicker">SVG LIBRARY · 47 SYMBOLS</span>
+        <h1>图标库</h1>
+        <p class="icon-sub">Prify Design 全部 SVG 符号，按 <code>icons.js</code> 定义顺序平铺。点击卡片查看符号名，顶部可按名称过滤。</p>
+      </div>
+      <label class="icon-search" for="iconSearch">
+        <svg class="icon"><use href="#i-search"/></svg>
+        <input id="iconSearch" type="search" placeholder="过滤图标，如 grid / i-grid" autocomplete="off" spellcheck="false">
+      </label>
+    </div>
+    <div class="icon-grid" id="iconGrid">
+      <button type="button" class="ic-card rip" data-name="i-logo" style="--i:0" aria-label="图标 i-logo"><svg class="icon"><use href="#i-logo"/></svg><code>i-logo</code></button>
+      <button type="button" class="ic-card rip" data-name="i-search" style="--i:1" aria-label="图标 i-search"><svg class="icon"><use href="#i-search"/></svg><code>i-search</code></button>
+      <button type="button" class="ic-card rip" data-name="i-sun" style="--i:2" aria-label="图标 i-sun"><svg class="icon"><use href="#i-sun"/></svg><code>i-sun</code></button>
+      <button type="button" class="ic-card rip" data-name="i-moon" style="--i:3" aria-label="图标 i-moon"><svg class="icon"><use href="#i-moon"/></svg><code>i-moon</code></button>
+      <button type="button" class="ic-card rip" data-name="i-menu" style="--i:4" aria-label="图标 i-menu"><svg class="icon"><use href="#i-menu"/></svg><code>i-menu</code></button>
+      <button type="button" class="ic-card rip" data-name="i-close" style="--i:5" aria-label="图标 i-close"><svg class="icon"><use href="#i-close"/></svg><code>i-close</code></button>
+      <button type="button" class="ic-card rip" data-name="i-check" style="--i:6" aria-label="图标 i-check"><svg class="icon"><use href="#i-check"/></svg><code>i-check</code></button>
+      <button type="button" class="ic-card rip" data-name="i-plus" style="--i:7" aria-label="图标 i-plus"><svg class="icon"><use href="#i-plus"/></svg><code>i-plus</code></button>
+      <button type="button" class="ic-card rip" data-name="i-download" style="--i:8" aria-label="图标 i-download"><svg class="icon"><use href="#i-download"/></svg><code>i-download</code></button>
+      <button type="button" class="ic-card rip" data-name="i-share" style="--i:9" aria-label="图标 i-share"><svg class="icon"><use href="#i-share"/></svg><code>i-share</code></button>
+      <button type="button" class="ic-card rip" data-name="i-star" style="--i:10" aria-label="图标 i-star"><svg class="icon"><use href="#i-star"/></svg><code>i-star</code></button>
+      <button type="button" class="ic-card rip" data-name="i-heart" style="--i:11" aria-label="图标 i-heart"><svg class="icon"><use href="#i-heart"/></svg><code>i-heart</code></button>
+      <button type="button" class="ic-card rip" data-name="i-user" style="--i:12" aria-label="图标 i-user"><svg class="icon"><use href="#i-user"/></svg><code>i-user</code></button>
+      <button type="button" class="ic-card rip" data-name="i-users" style="--i:13" aria-label="图标 i-users"><svg class="icon"><use href="#i-users"/></svg><code>i-users</code></button>
+      <button type="button" class="ic-card rip" data-name="i-arrow-r" style="--i:14" aria-label="图标 i-arrow-r"><svg class="icon"><use href="#i-arrow-r"/></svg><code>i-arrow-r</code></button>
+      <button type="button" class="ic-card rip" data-name="i-arrow-up" style="--i:15" aria-label="图标 i-arrow-up"><svg class="icon"><use href="#i-arrow-up"/></svg><code>i-arrow-up</code></button>
+      <button type="button" class="ic-card rip" data-name="i-chevron-d" style="--i:16" aria-label="图标 i-chevron-d"><svg class="icon"><use href="#i-chevron-d"/></svg><code>i-chevron-d</code></button>
+      <button type="button" class="ic-card rip" data-name="i-bolt" style="--i:17" aria-label="图标 i-bolt"><svg class="icon"><use href="#i-bolt"/></svg><code>i-bolt</code></button>
+      <button type="button" class="ic-card rip" data-name="i-shield" style="--i:18" aria-label="图标 i-shield"><svg class="icon"><use href="#i-shield"/></svg><code>i-shield</code></button>
+      <button type="button" class="ic-card rip" data-name="i-palette" style="--i:19" aria-label="图标 i-palette"><svg class="icon"><use href="#i-palette"/></svg><code>i-palette</code></button>
+      <button type="button" class="ic-card rip" data-name="i-sparkles" style="--i:20" aria-label="图标 i-sparkles"><svg class="icon"><use href="#i-sparkles"/></svg><code>i-sparkles</code></button>
+      <button type="button" class="ic-card rip" data-name="i-layers" style="--i:21" aria-label="图标 i-layers"><svg class="icon"><use href="#i-layers"/></svg><code>i-layers</code></button>
+      <button type="button" class="ic-card rip" data-name="i-code" style="--i:22" aria-label="图标 i-code"><svg class="icon"><use href="#i-code"/></svg><code>i-code</code></button>
+      <button type="button" class="ic-card rip" data-name="i-devices" style="--i:23" aria-label="图标 i-devices"><svg class="icon"><use href="#i-devices"/></svg><code>i-devices</code></button>
+      <button type="button" class="ic-card rip" data-name="i-clock" style="--i:24" aria-label="图标 i-clock"><svg class="icon"><use href="#i-clock"/></svg><code>i-clock</code></button>
+      <button type="button" class="ic-card rip" data-name="i-calendar" style="--i:25" aria-label="图标 i-calendar"><svg class="icon"><use href="#i-calendar"/></svg><code>i-calendar</code></button>
+      <button type="button" class="ic-card rip" data-name="i-mail" style="--i:26" aria-label="图标 i-mail"><svg class="icon"><use href="#i-mail"/></svg><code>i-mail</code></button>
+      <button type="button" class="ic-card rip" data-name="i-location" style="--i:27" aria-label="图标 i-location"><svg class="icon"><use href="#i-location"/></svg><code>i-location</code></button>
+      <button type="button" class="ic-card rip" data-name="i-sliders" style="--i:28" aria-label="图标 i-sliders"><svg class="icon"><use href="#i-sliders"/></svg><code>i-sliders</code></button>
+      <button type="button" class="ic-card rip" data-name="i-home" style="--i:29" aria-label="图标 i-home"><svg class="icon"><use href="#i-home"/></svg><code>i-home</code></button>
+      <button type="button" class="ic-card rip" data-name="i-grid" style="--i:30" aria-label="图标 i-grid"><svg class="icon"><use href="#i-grid"/></svg><code>i-grid</code></button>
+      <button type="button" class="ic-card rip" data-name="i-tag" style="--i:31" aria-label="图标 i-tag"><svg class="icon"><use href="#i-tag"/></svg><code>i-tag</code></button>
+      <button type="button" class="ic-card rip" data-name="i-help" style="--i:32" aria-label="图标 i-help"><svg class="icon"><use href="#i-help"/></svg><code>i-help</code></button>
+      <button type="button" class="ic-card rip" data-name="i-globe" style="--i:33" aria-label="图标 i-globe"><svg class="icon"><use href="#i-globe"/></svg><code>i-globe</code></button>
+      <button type="button" class="ic-card rip" data-name="i-cpu" style="--i:34" aria-label="图标 i-cpu"><svg class="icon"><use href="#i-cpu"/></svg><code>i-cpu</code></button>
+      <button type="button" class="ic-card rip" data-name="i-cloud-sun" style="--i:35" aria-label="图标 i-cloud-sun"><svg class="icon"><use href="#i-cloud-sun"/></svg><code>i-cloud-sun</code></button>
+      <button type="button" class="ic-card rip" data-name="i-music" style="--i:36" aria-label="图标 i-music"><svg class="icon"><use href="#i-music"/></svg><code>i-music</code></button>
+      <button type="button" class="ic-card rip" data-name="i-image" style="--i:37" aria-label="图标 i-image"><svg class="icon"><use href="#i-image"/></svg><code>i-image</code></button>
+      <button type="button" class="ic-card rip" data-name="i-folder" style="--i:38" aria-label="图标 i-folder"><svg class="icon"><use href="#i-folder"/></svg><code>i-folder</code></button>
+      <button type="button" class="ic-card rip" data-name="i-terminal" style="--i:39" aria-label="图标 i-terminal"><svg class="icon"><use href="#i-terminal"/></svg><code>i-terminal</code></button>
+      <button type="button" class="ic-card rip" data-name="i-pen" style="--i:40" aria-label="图标 i-pen"><svg class="icon"><use href="#i-pen"/></svg><code>i-pen</code></button>
+      <button type="button" class="ic-card rip" data-name="i-calc" style="--i:41" aria-label="图标 i-calc"><svg class="icon"><use href="#i-calc"/></svg><code>i-calc</code></button>
+      <button type="button" class="ic-card rip" data-name="i-chart" style="--i:42" aria-label="图标 i-chart"><svg class="icon"><use href="#i-chart"/></svg><code>i-chart</code></button>
+      <button type="button" class="ic-card rip" data-name="i-send" style="--i:43" aria-label="图标 i-send"><svg class="icon"><use href="#i-send"/></svg><code>i-send</code></button>
+      <button type="button" class="ic-card rip" data-name="i-power" style="--i:44" aria-label="图标 i-power"><svg class="icon"><use href="#i-power"/></svg><code>i-power</code></button>
+      <button type="button" class="ic-card rip" data-name="i-bell" style="--i:45" aria-label="图标 i-bell"><svg class="icon"><use href="#i-bell"/></svg><code>i-bell</code></button>
+      <button type="button" class="ic-card rip" data-name="i-trash" style="--i:46" aria-label="图标 i-trash"><svg class="icon"><use href="#i-trash"/></svg><code>i-trash</code></button>
+    </div>
+    <p class="ic-empty" id="iconEmpty" hidden>没有匹配的图标</p>
+  </section>
+
+  <!-- ====== CTA 订阅 ====== -->
+  <section id="cta">
+    <div class="container">
+      <div class="cta-card reveal">
+        <h2>准备好点亮你的产品了吗？</h2>
+        <p>订阅更新，让 Material You 与 Fluent 在你的界面里共生。</p>
+        <!-- #ctaForm：提交时正则校验邮箱，失败加 .invalid + shake，成功清空并弹 snackbar -->
+        <form class="cta-form" id="ctaForm" novalidate>
+          <input type="email" id="ctaMail" placeholder="you@company.com" aria-label="邮箱地址">
+          <button class="btn btn-lg rip" type="submit" id="ctaSubmit"><svg class="icon"><use href="#i-sparkles"/></svg>订阅更新</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ====== 页脚（分区 + 资源两列 + 品牌） ====== -->
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="brand" href="#top"><svg><use href="#i-logo"/></svg>Prify<em>Design</em></a>
+        <p>全部组件演示：一个页面装下外壳、表单、反馈、导航、小组件、图表、统计、营销区块与图标库。</p>
+        <!-- 页脚色板行：读系统强调色的圆钮同样放最前，#pdotsFoot 用 display:contents 并入同一 flex 行 -->
+        <div class="pdots">
+          <button class="icon-btn tonal rip" data-sys-accent data-tip="读取系统强调色" aria-label="读取系统强调色" style="width:30px;height:30px"><svg class="icon" style="width:16px;height:16px"><use href="#i-devices"/></svg></button>
+          <button class="icon-btn tonal rip" data-color-pick data-tip="打开调色盘" aria-label="打开调色盘" style="width:30px;height:30px"><svg class="icon" style="width:16px;height:16px"><use href="#i-palette"/></svg></button>
+          <div id="pdotsFoot" style="display:contents"></div>
+        </div>
+      </div>
+      <div class="foot-col"><h4>组件</h4><a href="#components">按钮家族</a><a href="#forms">表单控件</a><a href="#feedback">反馈与状态</a><a href="#navs">导航组件</a><a href="#widgets">小组件</a><a href="#charts">图表</a></div>
+      <div class="foot-col"><h4>营销区块</h4><a href="#stats">统计</a><a href="#features">特性</a><a href="#timeline">版本历程</a><a href="#pricing">定价</a><a href="#team">团队</a><a href="#faq">常见问题</a></div>
+      <div class="foot-col"><h4>资源</h4><a href="#icons">图标库</a><a href="md.html">文档</a><a href="#cta">订阅更新</a><a href="#top">回到顶部</a></div>
+    </div>
+    <!-- 调色板色卡：prify.js 的 renderPaletteBar() 注入 -->
+    <div class="palette-bar" id="paletteBar"></div>
+    <div class="foot-bottom">
+      <span>© 2026 Prify Design · 全部组件演示 · 保留所有权利</span>
+      <span>当前主题：<b id="footTheme">浅色 · 紫罗兰</b></span>
+    </div>
+  </div>
+</footer>
+
+<!-- ====== 任务栏 Dock ====== -->
+<div class="dock" id="dock">
+  <button class="dock-btn rip" id="startBtn" aria-label="开始菜单" aria-expanded="false"><span class="start-logo"><i></i><i></i><i></i><i></i></span></button>
+  <span class="dock-sep"></span>
+  <button class="dock-btn rip" data-tip="回到顶部" id="dockHome"><svg class="icon"><use href="#i-home"/></svg></button>
+  <button class="dock-btn rip" data-tip="组件库" id="dockGrid"><svg class="icon"><use href="#i-grid"/></svg></button>
+  <button class="dock-btn rip" data-tip="深浅主题" id="dockTheme"><svg class="icon"><use href="#i-moon"/></svg></button>
+  <button class="dock-btn rip" data-tip="分享本页" id="dockShare"><svg class="icon"><use href="#i-share"/></svg></button>
+</div>
+
+<!-- ====== 开始菜单 ====== -->
+<div class="start-scrim" id="startScrim"></div>
+<div class="start-menu" id="startMenu" role="dialog" aria-label="开始菜单">
+  <div class="sm-search">
+    <svg class="icon" style="color:var(--on-surface-var)"><use href="#i-search"/></svg>
+    <input type="text" id="smSearch" placeholder="搜索应用、文件与设置…" autocomplete="off">
+  </div>
+  <div class="sm-section"><span>已固定</span><a href="#components">组件库 ›</a></div>
+  <div class="sm-grid" id="smGrid">
+    <button class="sm-app rip" data-app="邮件"><span class="ai" style="background:linear-gradient(135deg,#1A73E8,#4FC3F7)"><svg class="icon"><use href="#i-mail"/></svg></span><span>邮件</span></button>
+    <button class="sm-app rip" data-app="日历"><span class="ai" style="background:linear-gradient(135deg,#E8710A,#FFB74D)"><svg class="icon"><use href="#i-calendar"/></svg></span><span>日历</span></button>
+    <button class="sm-app rip" data-app="Prify AI"><span class="ai" style="background:linear-gradient(135deg,#7C4DFF,#B388FF)"><svg class="icon"><use href="#i-sparkles"/></svg></span><span>Prify AI</span></button>
+    <button class="sm-app rip" data-app="设置"><span class="ai" style="background:linear-gradient(135deg,#546E7A,#90A4AE)"><svg class="icon"><use href="#i-sliders"/></svg></span><span>设置</span></button>
+    <button class="sm-app rip" data-app="时钟"><span class="ai" style="background:linear-gradient(135deg,#00897B,#4DB6AC)"><svg class="icon"><use href="#i-clock"/></svg></span><span>时钟</span></button>
+    <button class="sm-app rip" data-app="天气"><span class="ai" style="background:linear-gradient(135deg,#039BE5,#81D4FA)"><svg class="icon"><use href="#i-cloud-sun"/></svg></span><span>天气</span></button>
+    <button class="sm-app rip" data-app="相册"><span class="ai" style="background:linear-gradient(135deg,#D81B60,#F48FB1)"><svg class="icon"><use href="#i-image"/></svg></span><span>相册</span></button>
+    <button class="sm-app rip" data-app="音乐"><span class="ai" style="background:linear-gradient(135deg,#8E24AA,#CE93D8)"><svg class="icon"><use href="#i-music"/></svg></span><span>音乐</span></button>
+    <button class="sm-app rip" data-app="终端"><span class="ai" style="background:linear-gradient(135deg,#37474F,#78909C)"><svg class="icon"><use href="#i-terminal"/></svg></span><span>终端</span></button>
+    <button class="sm-app rip" data-app="文件"><span class="ai" style="background:linear-gradient(135deg,#F9A825,#FFE082)"><svg class="icon"><use href="#i-folder"/></svg></span><span>文件</span></button>
+    <button class="sm-app rip" data-app="笔记"><span class="ai" style="background:linear-gradient(135deg,#43A047,#A5D6A7)"><svg class="icon"><use href="#i-pen"/></svg></span><span>笔记</span></button>
+    <button class="sm-app rip" data-app="计算器"><span class="ai" style="background:linear-gradient(135deg,#5E35B1,#9575CD)"><svg class="icon"><use href="#i-calc"/></svg></span><span>计算器</span></button>
+  </div>
+  <div class="sm-section"><span>推荐项目</span></div>
+  <div class="sm-reco">
+    <button class="sm-reco-item rip"><svg class="icon"><use href="#i-image"/></svg><div><div class="rt">壁纸-落日.png</div><div class="rs">刚刚 · 桌面</div></div></button>
+    <button class="sm-reco-item rip"><svg class="icon"><use href="#i-code"/></svg><div><div class="rt">tokens.json</div><div class="rs">2 小时前 · 文档</div></div></button>
+    <button class="sm-reco-item rip"><svg class="icon"><use href="#i-pen"/></svg><div><div class="rt">设计走查清单</div><div class="rs">昨天 · 笔记</div></div></button>
+    <button class="sm-reco-item rip"><svg class="icon"><use href="#i-folder"/></svg><div><div class="rt">Prify v1.0 发布包</div><div class="rs">周三 · 下载</div></div></button>
+  </div>
+  <div class="sm-footer">
+    <div class="sm-user"><span class="avatar" style="background:linear-gradient(135deg,var(--primary),var(--tertiary))">P</span><span class="un">Prify 用户</span></div>
+    <button class="icon-btn rip" id="powerBtn" aria-label="电源" data-tip="电源"><svg class="icon"><use href="#i-power"/></svg></button>
+  </div>
+</div>
+
+<!-- ====== 对话框（全页单例，setDialogContent() 可换内容） ====== -->
+<div class="dialog-wrap" id="dialogWrap">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <div class="dialog-icon" id="dlgIcon"><svg class="icon"><use href="#i-sparkles"/></svg></div>
+    <h3 id="dlgTitle">订阅 Prify 更新</h3>
+    <p class="dtext"><span id="dlgDesc">每周一封，只发干货：新组件、设计走查与动效配方。随时可退订。</span></p>
+    <div class="tf" id="dlgTf"><input type="email" id="dlgMail" placeholder=" "><label for="dlgMail">你的邮箱地址</label></div>
+    <div class="dialog-actions">
+      <button class="btn btn-text rip" id="dlgCancel">取消</button>
+      <button class="btn btn-filled rip" id="dlgOk">立即订阅</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 调色盘弹窗（全页单例；入口圆钮带 data-color-pick，一个基础色驱动整套令牌） ====== -->
+<div class="dialog-wrap" id="pickerWrap">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="pickTitle">
+    <div class="dialog-icon"><svg class="icon"><use href="#i-palette"/></svg></div>
+    <h3 id="pickTitle">调色盘</h3>
+    <p class="dtext">拖二维面取色、拉色条调色相，整套主题令牌实时换算；点「应用」保存到本机。</p>
+    <div class="pick-sv" id="pickSV" aria-label="饱和度与明度取色区"><i class="pick-cursor" id="pickCursor"></i></div>
+    <input class="pick-hue" id="pickHue" type="range" min="0" max="360" step="1" value="262" aria-label="色相">
+    <p class="pick-warn" id="pickWarn">当前颜色太接近黑 / 白 / 灰，无法生成整套色板。请提高饱和度和明度再应用。</p>
+    <div class="pick-foot">
+      <span class="pick-dot" id="pickSwatch" aria-hidden="true"></span>
+      <input class="pick-hex" id="pickHex" type="text" autocomplete="off" spellcheck="false" aria-label="十六进制色值">
+      <button class="icon-btn tonal rip" id="pickBtnRandom" data-tip="随机" aria-label="随机取色"><svg class="icon"><use href="#i-sparkles"/></svg></button>
+    </div>
+    <div class="dialog-actions">
+      <button class="btn btn-text rip" id="pickBtnCancel">取消</button>
+      <button class="btn btn-filled rip pick-ok" id="pickBtnApply">应用</button>
+    </div>
+  </div>
+</div>
+
+<div class="snackbar" id="snackbar"><span class="sb-bar"></span><span id="sbText"></span><button id="sbAction"></button></div>
+
+<!-- ====== FAB：滚过 560px 浮出，点击回顶 ====== -->
+<button class="fab rip" id="fab"><svg class="icon"><use href="#i-arrow-up"/></svg><span class="label">回到顶部</span></button>
+
+<!-- prify.js 无 defer，必须在 icons.js 之后、</body> 前同步执行 -->
+<script src="prify.js"></script>
+
+<!-- ====== 本页内联脚本：小组件（下载/音乐）+ 图标库（过滤/重播） ====== -->
+<script>
+/* ---- 下载任务：自绘进度条。id 用 wgDl* 前缀，避开 prify.js 滑块联动的 #dlBar/#dlPct ---- */
+(function(){
+  var bar = document.getElementById('wgDlBar'),
+      pct = document.getElementById('wgDlPct'),
+      btn = document.getElementById('wgDlBtn'),
+      timer = null;
+  btn.onclick = function(){
+    if (timer) return;                       /* 已在下载中 */
+    var p = 0;
+    btn.disabled = true;
+    timer = setInterval(function(){
+      p = Math.min(100, p + 3 + Math.random() * 8);
+      bar.style.width = p.toFixed(0) + '%';
+      pct.textContent = p.toFixed(0) + '%';
+      if (p >= 100) {
+        clearInterval(timer); timer = null;
+        btn.disabled = false;
+        snackbar('prify-widgets.zip 下载完成（1.4MB）');
+      }
+    }, 180);
+  };
+})();
+
+/* ---- 音乐播放器：切换 .playing 触发进度条 CSS 动画 ---- */
+(function(){
+  var player = document.getElementById('wgMusic');
+  player.querySelector('#wgPlay').onclick = function(){
+    var on = player.classList.toggle('playing');
+    snackbar(on ? '正在播放 · Aurora Drift' : '已暂停');
+  };
+})();
+
+/* ---- 图标库：内联 symbol 以支持点击重播 + 按名称过滤 ---- */
+(() => {
+  const NS = 'http://www.w3.org/2000/svg';
+  const grid = document.getElementById('iconGrid');
+  const empty = document.getElementById('iconEmpty');
+  const inp = document.getElementById('iconSearch');
+  const cards = [...grid.children];
+
+  /* 图标动画在 <symbol> 里，经 <use> 克隆后是碰不到的影子树；
+     这里把 symbol 内容内联进卡片，动画元素成为真实节点，点按即可重绘重播。
+     begin 统一改为 indefinite，由 JS 的 beginElement() 控制（尊重 icons.js 的 AUTOPLAY）。 */
+  const first = document.getElementById(cards[0].dataset.name);
+  const AUTOPLAY = !!first && [...first.querySelectorAll('animate,animateTransform')]
+    .some(e => /^[\d.]+s/.test(e.getAttribute('begin') || ''));
+
+  const render = card => {
+    const sym = document.getElementById(card.dataset.name);
+    const old = card.querySelector('svg.icon');
+    if (!sym || !old) return null;
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'icon');
+    for (const a of sym.attributes) if (a.name !== 'id') svg.setAttribute(a.name, a.value);
+    svg.innerHTML = sym.innerHTML;
+    svg.querySelectorAll('animate,animateTransform').forEach(e => e.setAttribute('begin', 'indefinite'));
+    old.replaceWith(svg);
+    return svg;
+  };
+  const play = svg => svg && svg.querySelectorAll('animate,animateTransform')
+    .forEach(e => { try { e.beginElement(); } catch (_) {} });
+
+  cards.forEach(c => { const svg = render(c); if (AUTOPLAY) play(svg); });
+
+  inp.addEventListener('input', () => {
+    const q = inp.value.trim().toLowerCase();
+    let n = 0;
+    cards.forEach(c => {
+      const hit = !q || c.dataset.name.includes(q);
+      c.hidden = !hit;
+      if (hit) n++;
+    });
+    empty.hidden = n > 0;
+  });
+  grid.addEventListener('click', e => {
+    const card = e.target.closest('.ic-card');
+    if (!card) return;
+    play(render(card));
+    snackbar('符号 · ' + card.dataset.name);
+  });
+})();
+</script>
+</body>
+</html>

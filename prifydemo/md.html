@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-palette="violet">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#FEF7FF">
+<meta name="description" content="Prify Design 使用文档 — 模板说明、组件一览、快速开始与许可，由页内 Markdown 直接渲染。">
+<title>Prify Design · 使用文档</title>
+<script>
+/* ===== 防闪主题色：必须留在 <head> 内联，在首帧之前写入主题属性 ===== */
+(function(){
+  try{
+    var d=document.documentElement,t=localStorage.getItem('prify-theme');
+    if(!t) t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+    d.setAttribute('data-theme',t);
+    d.setAttribute('data-palette',localStorage.getItem('prify-palette')||'violet');
+  }catch(e){}
+})();
+</script>
+<link rel="stylesheet" href="prify.css">
+<style>
+/* ===== md.html 专属样式（本页自带，不进 prify.css） ===== */
+
+/* ---- 内置等宽字体 JetBrains Mono（OFL-1.1，中文回落到 --font） ---- */
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:400;font-display:swap;src:url("jetbrains-mono-400.woff2") format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:700;font-display:swap;src:url("jetbrains-mono-700.woff2") format("woff2")}
+
+/* ---- 页面栅格：左目录 + 右正文；960px 以下塌成单栏 ---- */
+.md-page{display:grid;grid-template-columns:236px minmax(0,1fr);gap:28px;align-items:start;max-width:1120px;margin:0 auto;padding:44px 24px 96px}
+@media(max-width:960px){.md-page{grid-template-columns:1fr;gap:14px;padding:26px 16px 72px}.md-body{padding:20px 16px 26px}}
+
+/* ---- 顶部工具条：左当前文档名、右「打开 MD 文件」按钮 ---- */
+.md-bar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.md-file-info{display:inline-flex;align-items:center;gap:8px;height:34px;min-width:0;max-width:min(60vw,460px);padding:0 14px;border:1px solid var(--outline-var);border-radius:var(--r-full);background:var(--surface-c-low);font-size:13px;color:var(--on-surface-var)}
+.md-file-info .icon{width:16px;height:16px;color:var(--primary);flex:none}
+.md-file-info b{font-weight:600;color:var(--on-surface);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---- 工具条右侧动作组：返回演示页 + 打开 MD ---- */
+.md-actions{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* ---- 目录侧栏：桌面 sticky；移动端塌到顶部，由页内脚本默认收起 ---- */
+.md-toc{position:sticky;top:20px;background:var(--surface-c-low);border:1px solid var(--outline-var);border-radius:var(--r-xl);padding:14px 12px 16px 16px;max-height:calc(100vh - 40px);overflow:auto}
+@media(max-width:960px){.md-toc{position:static;max-height:none}}
+.md-toc summary{cursor:pointer;font-size:14px;font-weight:640;padding:2px 6px;color:var(--on-surface);user-select:none}
+.md-toc nav{display:flex;flex-direction:column;gap:2px;margin-top:8px}
+.md-toc nav a{display:block;padding:6px 12px;border-radius:var(--r-full);font-size:13px;line-height:1.45;color:var(--on-surface-var);text-decoration:none;transition:background .18s,color .18s}
+.md-toc nav a:hover{background:var(--hover-layer);color:var(--on-surface)}
+.md-toc nav a.active{background:color-mix(in srgb,var(--primary) 16%,transparent);color:var(--primary);font-weight:600}
+.md-toc nav a.depth-3{margin-left:14px;font-size:12.5px}
+
+/* ---- 正文：包一层 prify 面板（圆角卡片），排版基线 ---- */
+.md-body{min-width:0;font-size:15.5px;line-height:1.85;color:var(--on-surface);--mono:"JetBrains Mono","Cascadia Mono",ui-monospace,"Roboto Mono","Noto Sans Mono",monospace;background:var(--surface);border:1px solid var(--outline-var);border-radius:var(--r-xl);padding:clamp(22px,3vw,40px);transition:background .4s,border-color .4s}
+.md-body>*:first-child{margin-top:0}
+.md-body h1{font-size:30px;line-height:1.4;font-weight:720;letter-spacing:-.01em;margin:0 0 18px;padding-bottom:14px;border-bottom:1px solid var(--outline-var);scroll-margin-top:20px}
+.md-body h2{font-size:23px;line-height:1.45;font-weight:680;margin:40px 0 14px;padding-bottom:10px;border-bottom:1px solid var(--outline-var);scroll-margin-top:20px}
+.md-body h3{font-size:19px;font-weight:660;margin:30px 0 10px;scroll-margin-top:20px}
+.md-body h4{font-size:16.5px;font-weight:640;margin:24px 0 8px}
+.md-body h5,.md-body h6{font-size:14.5px;font-weight:640;color:var(--on-surface-var);margin:20px 0 6px}
+.md-body p{margin:0 0 16px}
+.md-body a{color:var(--primary);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--primary) 45%,transparent);text-underline-offset:3px}
+.md-body a:hover{text-decoration-color:var(--primary)}
+.md-body strong{font-weight:680}
+.md-body del{color:var(--on-surface-var)}
+.md-body hr{border:none;border-top:1px solid var(--outline-var);margin:30px 0}
+.md-body img{max-width:100%;border-radius:var(--r-lg);border:1px solid var(--outline-var);margin:2px 0 16px}
+.md-body sup a{padding:0 1px;text-decoration:none;font-weight:600}
+
+/* ---- 列表与任务勾选：任务项由脚本改写成 prify 复选框，锁定只读 ---- */
+.md-body ul,.md-body ol{margin:0 0 16px;padding-left:24px}
+.md-body li{margin:6px 0}
+.md-body li::marker{color:var(--primary)}
+.md-body ul ul,.md-body ol ul,.md-body ul ol,.md-body ol ol{margin:6px 0}
+.md-body li:has(.m3-check){list-style:none}
+.md-body li .m3-check{pointer-events:none}
+.md-body li .m3-check input:disabled~*{opacity:1}
+
+/* ---- 引用：竖条用伪元素，两端圆角 ---- */
+.md-body blockquote{position:relative;margin:0 0 16px;padding:12px 18px 12px 20px;background:color-mix(in srgb,var(--primary) 8%,transparent);border-radius:0 var(--r-lg) var(--r-lg) 0;color:var(--on-surface-var)}
+.md-body blockquote::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:var(--r-full);background:var(--primary)}
+.md-body blockquote p{margin:0 0 10px}
+.md-body blockquote p:last-child{margin-bottom:0}
+.md-body blockquote blockquote{margin:10px 0 0}
+
+/* ---- 行内代码 / 围栏代码 ---- */
+.md-body :not(pre)>code{font-family:var(--mono);font-size:.88em;font-variant-ligatures:none;font-feature-settings:"calt" 0;background:var(--surface-c-high);padding:2px 8px;border-radius:var(--r-sm);word-break:break-word}
+.md-body pre{margin:0 0 18px;border:1px solid var(--outline-var);border-radius:var(--r-lg);background:var(--surface-c-low);overflow:hidden}
+.md-body pre code{display:block;padding:16px 18px;background:none;border-radius:0;font-family:var(--mono);font-size:13.5px;line-height:1.75;letter-spacing:0;font-variant-ligatures:none;font-feature-settings:"calt" 0;color:var(--on-surface);overflow-x:auto}
+
+/* ---- 表格：外层容器负责横向滚动（页内脚本注入 .md-table） ---- */
+.md-body .md-table{overflow-x:auto;margin:0 0 18px;border:1px solid var(--outline-var);border-radius:var(--r-lg)}
+.md-body table{border-collapse:collapse;width:100%;font-size:14.5px}
+.md-body th,.md-body td{border:1px solid var(--outline-var);padding:9px 14px;text-align:left;vertical-align:top}
+.md-body th{background:var(--surface-c);font-weight:640}
+.md-body tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--surface-c) 50%,transparent)}
+.md-body [align="center"]{text-align:center}
+.md-body [align="right"]{text-align:right}
+
+/* ---- 脚注区（marked-footnote 输出 .footnotes + sr-only 标题） ---- */
+.md-body .footnotes{margin-top:36px;padding-top:14px;border-top:1px dashed var(--outline-var);font-size:13.5px;line-height:1.75;color:var(--on-surface-var)}
+.md-body .footnotes ol{padding-left:22px;margin:0}
+.md-body .footnotes li{margin:8px 0}
+.md-body .footnotes a{color:var(--primary);text-decoration:none}
+.md-body .footnotes a:hover{text-decoration:underline}
+.md-body a[data-footnote-backref]{margin-left:6px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- 代码高亮 token 配色：全部走 prify 主题变量，明暗切换自动适配 ---- */
+.md-body .hljs-comment,.md-body .hljs-quote{color:var(--on-surface-var);opacity:.75;font-style:italic}
+.md-body .hljs-keyword,.md-body .hljs-selector-tag,.md-body .hljs-literal,.md-body .hljs-type,.md-body .hljs-built_in,.md-body .hljs-doctag{color:var(--primary)}
+.md-body .hljs-string,.md-body .hljs-regexp,.md-body .hljs-addition,.md-body .hljs-attr,.md-body .hljs-attribute,.md-body .hljs-selector-attr,.md-body .hljs-selector-class{color:var(--tertiary)}
+.md-body .hljs-number,.md-body .hljs-symbol,.md-body .hljs-bullet,.md-body .hljs-variable,.md-body .hljs-template-variable,.md-body .hljs-link{color:var(--error)}
+.md-body .hljs-title,.md-body .hljs-name,.md-body .hljs-section,.md-body .hljs-title.function_{color:var(--on-surface);font-weight:680}
+.md-body .hljs-meta,.md-body .hljs-meta .hljs-keyword{color:var(--on-surface-var)}
+.md-body .hljs-subst{color:var(--on-surface)}
+.md-body .hljs-emphasis{font-style:italic}
+.md-body .hljs-strong{font-weight:700}
+.md-body .hljs-deletion{text-decoration:line-through}
+</style>
+</head>
+<body>
+
+<!-- ====== SVG 图标库（必须先于 prify.js 注入） ====== -->
+<script src="icons.js"></script>
+
+<!-- ====== 启动画面（prify.js 就绪后淡出移除） ====== -->
+<div class="boot" id="boot">
+  <div class="boot-inner">
+    <div class="boot-logo"><i></i><i></i><i></i><i></i></div>
+    <div class="boot-name">Prify<span>Design</span></div>
+    <div class="boot-dots"><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="boot-ver">v1.0 · 使用文档 · Material You × Fluent Design</div>
+  </div>
+</div>
+
+<!-- 顶部加载/滚动进度（prify.js 启动流程依赖此结构：#pageLoader > i） -->
+<div class="page-loader" id="pageLoader"><i></i></div>
+
+<!-- 本页是「无外壳纯内容」只读渲染页：没有顶栏/抽屉/Dock/开始菜单/页脚。
+     prify.js 对缺失 id 走游离 div 兜底，启动与主题切换照常工作。 -->
+<main class="md-page">
+
+  <!-- 工具条：按钮打开本地 .md 文件，读到的文本走同一条渲染管线（http 与 file:// 都可用） -->
+  <div class="md-bar">
+    <span class="md-file-info"><svg class="icon"><use href="#i-pen"/></svg><b id="mdFileName">Prify Design 使用文档</b></span>
+    <!-- 右侧动作组：返回全部组件演示 + 打开本地 md 文件 -->
+    <span class="md-actions">
+      <a class="btn btn-text btn-sm rip" href="index.html">
+        <svg class="icon"><use href="#i-grid"/></svg>返回组件演示
+      </a>
+      <label class="btn btn-outlined btn-sm rip" for="mdFile">
+        <svg class="icon"><use href="#i-folder"/></svg>打开 MD 文件
+      </label>
+    </span>
+    <input type="file" id="mdFile" accept=".md,.markdown,.mdown,.txt,text/markdown,text/plain" hidden>
+  </div>
+
+  <!-- 目录：链接由页内脚本按 h2/h3 生成，桌面 sticky、移动端默认收起 -->
+  <details class="md-toc" id="mdToc" open>
+    <summary>目录</summary>
+    <nav id="mdTocNav" aria-label="文档目录"></nav>
+  </details>
+
+  <!-- 渲染结果容器 -->
+  <article class="md-body" id="mdOut"></article>
+
+  <!-- ====== Markdown 源文档：改这里就是改页面内容（type 非 text/html，浏览器不当作脚本执行） ====== -->
+  <script type="text/markdown" id="mdSource">
+# Prify Design 模板使用文档
+
+Material You × Win11 Fluent Design 融合风格的中文静态网页模板，无构建、无外部网络资源，双击 HTML 或起个静态服务器就能跑（Markdown 页的 3 个解析库与代码字体已随包本地化，离线可用）。
+
+> *声明：示例中的制作人员、数据、链接、订阅、邮箱与图片等（包括 GitHub 星数）均为虚构，仅用于功能演示。*
+
+---
+
+## 特性亮点
+
+- **零构建、零依赖、离线可用**：纯静态 HTML / CSS / JS，双击即开；Markdown 页的解析库与代码字体已随包本地化，无 CDN
+- **Material You × Win11 Fluent 融合**：Material 3 的圆角 / 色彩令牌 / 动效，叠加 Windows 11 的亚克力、桌面窗口与任务栏 Dock
+- **一个颜色生成整套主题**：内置 20 套色板 × 深浅色；另有「读系统强调色」与「调色盘」，取任意基础色用 OKLCH 现算整套 Material 3 令牌并全站生效
+- **47 个 SVG 图标**：内嵌 SMIL 动画，图标库运行时注入，点击单个图标就地重播
+- **完整应用外壳**：顶栏、移动端抽屉、Dock、开始菜单、对话框、Snackbar、FAB 一应俱全
+- **原生交互，无需框架**：主题与色板记忆（localStorage）、防闪主题色、IntersectionObserver 驱动的入场 / 数字计数 / 进度环 / 图表
+- **响应式与无障碍**：栅格窄屏自动落满整行，控件带 aria 标注，弹层支持 Esc / 点遮罩关闭
+- **四套并列模板**：完整外壳页、完整外壳落地页、无外壳小组件页、Markdown 文档页，可分别独立使用
+
+---
+
+## 组件一览
+
+内置页面已实现的 HTML 组件（主要在 `base.html` / `landing.html` 与 `widget.html`，样式类名见 `prify.css`）：
+
+| 分类 | 组件 |
+|---|---|
+| 基础 | 按钮家族（实心 / 描边 / 文本 / 色调）、图标按钮、FAB、徽章 Badge、Chip、头像 |
+| 表单 | 输入框、浮动标签、下拉菜单、开关、单选、复选、滑块，以及成功 / 错误 / 禁用状态 |
+| 反馈 | Banner 横幅、Snackbar、Dialog 对话框、`data-tip` 气泡提示、进度条 / 进度环 |
+| 导航 | 顶栏 Topbar、Tabs 标签页、Segmented 分段控件、Accordion 手风琴、页脚链接列 |
+| 外壳 | 移动端抽屉、Dock 任务栏、开始菜单、FAB、返回顶部 |
+| 数据展示 | 桌面窗口（时钟 / 进度环 / 待办）、天气 / 下载 / 音乐 / 快捷设置 / 日程卡片、折线图、柱状图、统计计数 |
+| 内容 | 卡片、Hero、CTA 订阅表单 |
+| 落地页 | 特性筛选卡（`.chip` 分类过滤）、Logo 墙、时间线、定价卡 + 月/年切换、团队卡、FAQ 手风琴 |
+
+---
+
+## 1. 文件构成
+
+| 文件 | 作用 |
+|---|---|
+| `base.html` | 基础模板页：完整外壳 + Hero + 表单 / 反馈 / 导航组件 |
+| `landing.html` | 落地页模板：完整外壳 + Hero + 营销区块（特性筛选 / 影响力 / 时间线 / 定价 / 团队 / FAQ / 订阅） |
+| `widget.html` | 小组件模板页：无外壳纯内容（桌面窗口、小组件、图表、统计） |
+| `md.html` | Markdown 渲染页：只读展示，左侧目录 + 脚注 + 代码高亮，文档写在页内 `#mdSource`，可在页面上打开本地 .md |
+| `prify.css` | 全部样式（三页共用），末尾有 `base.html 专属` 块 |
+| `prify.js` | 全部交互（三页共用）：主题、抽屉、开始菜单、对话框、图表等 |
+| `icons.js` | SVG 图标库，47 个 `<symbol>`，内嵌 SMIL 动画，运行时注入 |
+| `marked.umd.js` | Markdown 解析器 marked v18，MIT，`md.html` 用 |
+| `marked-footnote.umd.js` | marked 脚注扩展，MIT，`md.html` 用 |
+| `highlight.min.js` | highlight.js 语法高亮整包（36 种语言），BSD-3-Clause，`md.html` 用 |
+| `jetbrains-mono-400.woff2` `-700.woff2` | 内置等宽字体 JetBrains Mono（latin 子集，OFL-1.1），`md.html` 代码用 |
+| `jetbrains-mono-OFL.txt` | JetBrains Mono 的 OFL 许可原文（OFL 要求随字体分发） |
+| `licenses/` | 第三方库许可全文（marked / marked-footnote / highlight.js） |
+| `LICENSE` | 本项目许可：PolyForm Noncommercial 1.0.0 + 署名要求 |
+| `.gitignore` | 忽略本地备份与测试用文件 |
+
+---
+
+## 2. 快速开始
+
+无需安装任何依赖，把所有文件放在同一目录即可。
+
+方式一，直接双击打开：
+
+- `base.html` —— 完整外壳的基础模板
+- `landing.html` —— 完整外壳的落地页模板
+- `widget.html` —— 无外壳的小组件模板
+- `md.html` —— Markdown 渲染模板
+
+方式二，起一个静态服务器（推荐，避免个别浏览器对 file:// 协议的限制）：
+
+```bash
+cd 项目目录
+python3 -m http.server 8080
+```
+
+然后浏览器访问：
+
+- http://127.0.0.1:8080/base.html
+- http://127.0.0.1:8080/landing.html
+- http://127.0.0.1:8080/widget.html
+- http://127.0.0.1:8080/md.html
+
+`python3 -m http.server` 对改动是实时生效的，改完 HTML / CSS / JS 刷新即可，不用重启。
+
+---
+
+## 3. 四个页面怎么选
+
+- **只想要一套能直接改的页面骨架** → `base.html`（顶栏、抽屉、Dock、开始菜单、表单、反馈、导航、CTA 全齐）
+- **要做产品落地页 / 官网首页** → `landing.html`（同款外壳，外加 Hero + 特性筛选、影响力、时间线、定价、团队、FAQ、订阅营销区块）
+- **只要小组件 / 图表展示，不要外壳** → `widget.html`（无导航、无抽屉、无页脚，纯内容区）
+- **写文档 / 展示 Markdown** → `md.html`（改页内 `#mdSource` 的文本即可，支持表格、任务列表、脚注、代码高亮，也可在页面上打开本地 .md）
+
+各页互不添加导航入口链接，是并列的独立模板。图标清单查 `icons.js` 里的 `<symbol id="i-xxx">`。
+
+---
+
+## 4. 拿模板改自己的页面
+
+### 4.1 引入顺序（必须遵守）
+
+```html
+<head>
+  <meta charset="UTF-8">
+  <!-- 防闪主题色内联脚本，必须留在 <head> 里 -->
+  <script>…<\/script>
+  <link rel="stylesheet" href="prify.css">
+<\/head>
+<body>
+  <!-- 图标库先注入 -->
+  <script src="icons.js"><\/script>
+  …页面结构…
+  <!-- 交互脚本最后、<\/body> 前，不用 defer -->
+  <script src="prify.js"><\/script>
+<\/body>
+```
+
+原因：
+
+- 防闪脚本在 CSS 解析前应用主题色，挪出去会首帧闪白
+- `icons.js` 必须先于 `prify.js`，后者依赖它注入的 47 个 symbol
+- `prify.js` 不能加 `defer`、不能放进 `<head>`，它要同步访问 body 里的元素
+
+### 4.2 以 base.html 为底改
+
+直接复制 `base.html` 改内容即可。外壳（顶栏 / 抽屉 / Dock / 开始菜单 / 对话框 / Snackbar / FAB / 页脚）都在文件里，去掉不需要的分区不影响其余功能。
+
+分区锚点：`#components` `#forms` `#feedback` `#navs` `#cta`，页内链接全部指向这些锚点。
+
+### 4.3 以 widget.html 为底改
+
+`widget.html` 是无外壳纯内容页，但**必须保留 `#boot` + `#pageLoader`**：Hero 窗口在 `body.ready` 之前是透明的，启动流程与防闪依赖这个结构。
+
+### 4.4 以 md.html 为底改
+
+`md.html` 同样无外壳，渲染整篇文档只需要改一处：`<script type="text/markdown" id="mdSource">` 之间的文本（支持 GFM 表格 / 任务列表 / 脚注 / 围栏代码块，写法见页内示例）。
+
+- 标题锚点和左侧目录由页内脚本自动生成（h2/h3），marked v18 不产出标题 id，不用手动加
+- 代码块标注 `语言` 才高亮，不标注保持原样；代码字体是内置的 JetBrains Mono（latin 子集），中文回落 `--font`
+- 顶部「打开 MD 文件」按钮可选本地 .md 即时渲染（http 与 file:// 都可用），文档名与页签标题同步更新，打开结果给一条 snackbar 提示
+- 任务列表 `- [x]` 自动改写成 prify 的 `.m3-check` 复选框样式，锁定只读不可点
+- 脚注标签建议用 ASCII（如 `[^note]`），中文标签的锚点编码在不同浏览器里行为不一
+- 库加载失败时自动降级为纯文本源码展示，页面不会空白
+
+### 4.5 样式和脚本往哪放
+
+| 页面 | 新增样式 | 新增脚本 |
+|---|---|---|
+| base.html | `prify.css` 末尾的 `/* ===== base.html 专属 ===== */` 块 | `prify.js` |
+| landing.html | 各营销区块样式已在 `prify.css` 通用区，一般无需新增 | `prify.js` |
+| widget.html | 自己文件内的 `<style>` | 自己文件内的 `<script>` |
+| md.html | 自己文件内的 `<style>`（md 专属样式） | 自己文件内的渲染脚本 |
+| 新页面 | 看它有没有外壳：有 → 仿 base；无 → 仿 widget，样式脚本全内联 | 同左 |
+
+---
+
+## 5. 常用功能速查
+
+### 5.1 图标
+
+```html
+<svg class="icon"><use href="#i-bell"/><\/svg>
+```
+
+图标名清单查 `icons.js` 里的 `<symbol id="i-xxx">`。全部 47 个，命名 `i-前缀`。
+
+- **动画总开关**在 `icons.js` 顶部：`AUTOPLAY`（加载时全屏自动播）、`ANIM`（是否注入 SMIL），改这两个常量即可，不用动 symbol
+- **点击重播**由 `prify.js` 全局处理：点击时把该 `<use>` 就地展开成独立副本再 `beginElement()`，只播被点的那一个
+
+### 5.2 主题与色板
+
+- `html[data-theme]` 切深浅色（`light` / `dark`），`html[data-palette]` 切 20 色板：`violet` 紫罗兰 / `ocean` 海洋 / `forest` 森林 / `sunset` 落日，外加 16 套扩展 `crimson` 绯红、`brick` 砖橙、`rose` 玫粉、`magenta` 品红、`orchid` 兰紫、`indigo` 靛蓝、`azure` 天蓝、`cerulean` 湖蓝、`teal` 青碧、`jade` 竹青、`lime` 青柠、`sprout` 嫩芽、`lemon` 柠黄、`gold` 鎏金、`sand` 暖沙、`neutral` 中性灰
+- 再加色板：`prify.css` 色板区补浅色 + 深色两条规则，`prify.js` 的 `PALETTES` 加一行 `{ key, name, dot }`，页脚与抽屉的圆点自动出现
+- 系统强调色：抽屉「动态取色」区与页脚色板行最前面的 30×30 圆钮，`.icon-btn.tonal` + `#i-devices` 电脑图标，悬停出 `data-tip` 气泡，带 `data-sys-accent`；按下才读浏览器 `AccentColor` 系统色（探针 + 对照两个隐藏元素，判断关键字是否真被支持），把读到的颜色按紫罗兰 19 个令牌模板现算成浅色 + 深色整套令牌注入 `<style id="sys-palette">`，读到的色**直接涂在这个圆钮自己身上**（`.swatch` + `--c`/`--on-c`，图标色按对比度取黑或白），色板圆点区**不新增圆点**，色值存 `prify-system-accent` 下次直接复用；当前 `data-palette="system"` 时该钮带选中圈，点任意静态色板圆点即退出（`data-palette` 一变，系统规则就不匹配）。读不到、或色过于中性（近黑/白/灰）只提示不改色
+- 调色盘：抽屉与页脚「动态取色」行的调色盘圆钮（`.icon-btn.tonal` + `#i-palette`，带 `data-color-pick`）打开居中弹窗 `#pickerWrap`（打开时自动收起抽屉 / 开始菜单）；取色区是一个二维面（横轴饱和度、纵轴明度，底色随色相），上方白色圆环光标可按住拖动，下面一条彩虹色相滑杆（原生 range 换皮成白色圆角滑块），底部是圆形色块 + 可编辑的十六进制输入 + 随机按钮。三者用 HSV 合成 `_hsv2hex()` 基础色，复用 `sysBuildPalette()` 现算整套令牌。**拖动时只在弹窗内预览**（光标 / 色块实时变，弹窗外的页面不重绘，避免卡顿），松手 / 改 hex / 随机时才整页换色一次；注入独立 `custom` 槽（`html[data-palette="custom"]`），取消 / Esc / 点遮罩还原打开前的色板，点「应用」才写 `prify-custom-color` 与 `prify-palette`，**色板行同样不新增圆点**，颜色改涂在调色盘圆钮自己身上（`paintSwatch`，`data-palette="custom"` 时它带选中圈，和 i-devices 钮上的系统色互不覆盖）；颜色太接近黑 / 白 / 灰（算不出整套）会禁用应用并提示
+- 浏览器限制（按钮不会坏，但不一定真的"跟了系统"）：`AccentColor` 需要较新版本，Chrome 150+ 普通标签页为防指纹只返回固定默认蓝（会提示「可能是浏览器固定默认色」），Safari 长期返回常量，真正拿到系统真值的主要是 Firefox（Windows 除外）与已安装的 PWA
+- 存 localStorage（`prify-theme` / `prify-palette`），下次访问保持
+- 顶部主题按钮、Dock 深浅按钮、色板点都会联动
+
+### 5.3 对话框（全页单例）
+
+```js
+setDialogContent({ title: '标题', desc: '描述', icon: '#i-sparkles', ok: '确定' });
+setDialog(true);   // 打开
+setDialog(false);  // 关闭
+```
+
+`#dialogWrap` 放在 body 末尾即可复用，页面上有 `#dlgBtn` 会自动绑定。
+
+### 5.4 Snackbar（全页单例）
+
+```js
+snackbar('已保存', '撤销', () => { … }, 3600);
+```
+
+参数：文本、动作按钮文字（可选）、回调（可选）、时长毫秒（默认 3600）。
+
+### 5.5 状态类名
+
+- 入场：`.reveal` / `.stagger` 进入视口自动显现（配 `.in`）
+- 数字与圆环：`data-count="92"`（计数）、`data-ring="92"`（圆环），**只在 `.reveal` / `.stagger` 祖先进入视口时才填充**
+- 折线图：滚到视口由 IO 加 `.line-chart-wrap.chart-in` 触发绘制
+
+---
+
+## 6. 新增一个页面的检查清单
+
+1. 复制 `base.html`（要外壳）或 `widget.html`（不要外壳）
+2. 改 `<title>`、`<meta name="description">` 和页面文案
+3. 页内链接只指向本页真实存在的锚点
+4. 确认 `#boot` / `#pageLoader` 还在，`icons.js` 和 `prify.js` 顺序正确
+5. 跑一遍检查（见第 7 节）
+
+---
+
+## 7. 自测要点
+
+改完代码至少过这几项：
+
+```bash
+node --check prify.js icons.js        # JS 语法
+python3 -c "s=open('prify.css').read();print(s.count('{'),s.count('}'))"   # 括号配平
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8080/base.html   # 资源 200
+```
+
+肉眼检查清单：
+
+- 加载无白屏 / 无主题闪色，boot 启动画面正常淡出
+- 顶栏、抽屉、Dock、开始菜单、对话框、Snackbar 都能开能关
+- 主题 / 色板切换，刷新后保持
+- 图标入场自动播，点击单个图标只重播它自己
+- 图表滚到视口才画，柱状图 X 轴标签、圆环数字正常
+- 对话框内容依次淡入，开始菜单下半部分（搜索框、推荐、页脚）完整
+- 徽章红点里的数字居中
+- md.html：目录点击跳转、滚动时目录高亮跟随、代码配色随主题切换、脚注往返、表格窄屏横向滚动、打开本地 md 可渲染
+
+---
+
+## 8. 踩坑速记
+
+- **入场关键帧必须写显式 `to`**：元素基础 `opacity:0` 配 `from{opacity:0}` 会 0 淡入到 0 永远不显示
+- **小尺寸徽标写 `line-height:1`**：body 的 1.7 行高会撑破固定高度内容框，文字不居中
+- **写入型 id 契约**：`dlPct / dlBar / radiusOut / radiusSlider` 四个要么全带要么全不带，缺 `radiusSlider` 页面会显示 `undefined%`
+- **下拉菜单 `#teamList` 由 JS 挂到 body**（fixed 定位），别放回 `.win-card` 里，会被 `overflow:hidden` 裁掉
+- **图标动画是 SMIL**，不受 `prefers-reduced-motion` 影响，也不按视口触发
+- `$()` 找不到元素返回游离 div 不抛错，所以 id 拼错不会报错，靠上面第 7 节的比对来查
+- **marked v18 没有 headerIds**：md 页的标题锚点与目录由页内脚本手动生成
+- **md 页脚注标签用 ASCII**：marked-footnote 对 id 与 href 都做 URI 编码，中文标签的锚点匹配在不同浏览器里不一致
+
+---
+
+## 9. 第三方库与许可
+
+`md.html` 依赖 3 个库 + 1 个字体，全部已下载到同目录、离线可用，无 CDN、无构建步骤：
+
+| 库 / 资源 | 版本 | 许可 | 用途 |
+|---|---|---|---|
+| [marked](https://github.com/markedjs/marked) | 18.0.14 | MIT | Markdown → HTML 解析（GFM） |
+| [marked-footnote](https://github.com/bent10/marked-extensions) | 1.4.0 | MIT | 脚注扩展，挂载到 marked |
+| [highlight.js](https://github.com/highlightjs/highlight.js) | 11.11.1 | BSD-3-Clause | 语法高亮（使用 cdn-release 整包 `highlight.min.js`，含 36 种语言） |
+| [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | 2.x latin 子集 | OFL-1.1 | 代码等宽字体（woff2） |
+
+许可全文随包：`licenses/marked.LICENSE`、`licenses/marked-footnote.LICENSE`、`licenses/highlightjs.LICENSE`，字体许可见 `jetbrains-mono-OFL.txt`。
+
+注意：highlight.js 许可是 **BSD-3-Clause 不是 MIT**；`npm i highlight.js` 装的 `lib/common.js` 是 ESM 聚合入口，`<script>` 引不进来，必须用发布产物整包。JetBrains Mono 是 OFL-1.1，分发时要附带许可原文且不得使用其保留字体名；它是 latin 子集，中文注释回落到 `--font`。
+
+除 `md.html` 外，其余页面不引入任何第三方库，样式交互全部为 `prify.css` / `prify.js` 原生实现。
+
+---
+
+## 10. 授权与商用
+
+本项目（`base.html` / `landing.html` / `widget.html` / `md.html` 与 `prify.css` / `prify.js` / `icons.js`）采用 **PolyForm Noncommercial License 1.0.0**，全文见 `LICENSE`。要点：
+
+- **非商业**使用、复制、修改、分发免费，但必须保留版权声明与许可声明，并在适当位置注明原作者 **wfy-coder**。
+- **商业用途**须事先取得版权持有人的书面授权，可通过 https://github.com/wfy-coder 联系。
+- 软件按“现状”提供，不含任何担保。
+
+第三方库与字体遵循各自许可（见第 9 节），与上述条款彼此独立。
+
+</script>
+</main>
+
+<!-- prify.js 必须在 icons.js 之后同步执行（无 defer） -->
+<script src="prify.js"></script>
+
+<!-- ====== 三个本地渲染库（版本与许可见 README） ====== -->
+<script src="marked.umd.js"></script>            <!-- MIT · marked v18，GFM 解析 -->
+<script src="marked-footnote.umd.js"></script>   <!-- MIT · 脚注扩展 -->
+<script src="highlight.min.js"></script>          <!-- BSD-3-Clause · highlight.js，语法高亮 -->
+
+<!-- ====== md.html 渲染脚本（本页专属，不进 prify.js） ====== -->
+<script>
+(function () {
+  var srcEl  = document.getElementById('mdSource'),
+      out    = document.getElementById('mdOut'),
+      toc    = document.getElementById('mdToc'),
+      nav    = document.getElementById('mdTocNav'),
+      fileIn = document.getElementById('mdFile'),
+      nameEl = document.getElementById('mdFileName');
+  if (!srcEl || !out) return;
+  var src = srcEl.textContent.replace(/<\\\//g, '</'),   /* 还原内嵌文档里被转义的结束标签序列 */
+      io = null,
+      SVGNS = 'http://www.w3.org/2000/svg',
+      libsOK = typeof marked !== 'undefined' && typeof markedFootnote !== 'undefined' &&
+               typeof hljs !== 'undefined';
+  if (libsOK) marked.use(markedFootnote());   /* 脚注扩展只挂一次，重复渲染不会叠加 */
+
+  /* 库缺失兜底：原样展示源码，页面不至于空白 */
+  function fallback(text) {
+    out.textContent = '';
+    var pre = document.createElement('pre'),
+        code = document.createElement('code');
+    code.textContent = text;
+    pre.appendChild(code);
+    out.appendChild(pre);
+    nav.textContent = '';
+    toc.style.display = 'none';
+  }
+
+  /* 渲染整篇文档：初始示例与「打开 MD 文件」共用这条管线 */
+  function render(text) {
+    if (!libsOK) { fallback(text); return; }
+    toc.style.display = '';
+    var html;
+    try { html = marked.parse(text); } catch (e) { fallback(text); return; }
+    out.innerHTML = html;
+
+    /* 表格外包一层横向滚动容器（窄屏不撑破布局） */
+    out.querySelectorAll('table').forEach(function (t) {
+      var w = document.createElement('div');
+      w.className = 'md-table';
+      t.replaceWith(w);
+      w.appendChild(t);
+    });
+
+    /* 任务列表：markdown 的 li>input[type=checkbox] 改写成 prify 复选框（锁定只读）
+       结构对齐 prify.js 的迷你任务：label.m3-check.task-item > input + span.cb>svg>use#i-check + span */
+    out.querySelectorAll('li > input[type=checkbox]').forEach(function (inp) {
+      var li = inp.parentNode,
+          label = document.createElement('label'),
+          cb = document.createElement('span'),
+          svg = document.createElementNS(SVGNS, 'svg'),
+          use = document.createElementNS(SVGNS, 'use'),
+          text2 = document.createElement('span');
+      label.className = 'm3-check task-item' + (inp.checked ? ' done' : '');
+      inp.disabled = true;                       /* 只读：锁定不可改 */
+      cb.className = 'cb';
+      use.setAttribute('href', '#i-check');
+      svg.appendChild(use);
+      cb.appendChild(svg);
+      while (li.firstChild) {                    /* 其余节点收进文本 span */
+        var n = li.firstChild;
+        li.removeChild(n);
+        if (n !== inp) text2.appendChild(n);
+      }
+      label.appendChild(inp);
+      label.appendChild(cb);
+      label.appendChild(text2);
+      li.appendChild(label);
+    });
+
+    /* 标题锚点 + 目录重建（每次渲染重置去重表与目录节点） */
+    var seen = {};
+    function slug(t) {
+      var s = t.trim().toLowerCase().replace(/\s+/g, '-')
+                 .replace(/[^\w\u4e00-\u9fa5-]/g, '') || 'section';
+      if (seen[s] != null) { seen[s] += 1; s = s + '-' + seen[s]; } else { seen[s] = 0; }
+      return s;
+    }
+    var heads = Array.prototype.filter.call(out.querySelectorAll('h2,h3'), function (h) {
+      return !h.closest('.footnotes') && !h.classList.contains('sr-only');
+    });
+    nav.textContent = '';
+    var frag = document.createDocumentFragment();
+    heads.forEach(function (h) {
+      if (!h.id) h.id = slug(h.textContent);
+      var a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent;
+      a.className = h.tagName === 'H3' ? 'depth-3' : 'depth-2';
+      frag.appendChild(a);
+      h._link = a;
+    });
+    nav.appendChild(frag);
+
+    /* 外链一律新窗口打开 */
+    out.querySelectorAll('a[href^="http"]').forEach(function (a) {
+      a.target = '_blank';
+      a.rel = 'noopener';
+    });
+
+    /* 语法高亮：只处理标注了语言的代码块，未标注保持原样 */
+    out.querySelectorAll('pre code').forEach(function (cb) {
+      var lang = '';
+      Array.prototype.forEach.call(cb.classList, function (c) {
+        if (c.indexOf('language-') === 0) lang = c.slice(9);
+      });
+      if (!lang || !hljs.getLanguage(lang)) return;
+      cb.classList.add('hljs');
+      try { hljs.highlightElement(cb); } catch (e) {}
+    });
+
+    /* 目录滚动高亮：重复渲染时先断开旧的 observer，只在本页写 IO，不动 prify.js */
+    if (io) io.disconnect();
+    io = null;
+    if ('IntersectionObserver' in window && heads.length) {
+      io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (!en.isIntersecting) return;
+          nav.querySelectorAll('a.active').forEach(function (x) { x.classList.remove('active'); });
+          if (en.target._link) en.target._link.classList.add('active');
+        });
+      }, { rootMargin: '-18% 0px -68% 0px' });
+      heads.forEach(function (h) { io.observe(h); });
+    }
+  }
+
+  render(src);
+
+  /* 移动端默认收起目录；点目录跳转后顺手收起，避免遮挡正文（只绑一次） */
+  if (window.matchMedia && matchMedia('(max-width:960px)').matches) toc.open = false;
+  nav.addEventListener('click', function () {
+    if (window.matchMedia && matchMedia('(max-width:960px)').matches) toc.open = false;
+  });
+
+  /* 打开本地 md 文件：读文本后走同一条渲染管线，轻提示 + 回到顶部 */
+  if (fileIn) fileIn.addEventListener('change', function () {
+    var f = fileIn.files && fileIn.files[0];
+    fileIn.value = '';                      /* 清空，允许再次选同一个文件 */
+    if (!f) return;
+    var ok = function (text) {
+      render(text);
+      if (nameEl) nameEl.textContent = f.name;
+      document.title = f.name + ' · Prify Markdown 渲染模板';
+      if (window.scrollTo) window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (typeof snackbar === 'function') snackbar('已打开 ' + f.name, '知道了');
+    };
+    var bad = function () { if (typeof snackbar === 'function') snackbar('读取文件失败'); };
+    if (f.text) f.text().then(ok, bad); else {
+      var fr = new FileReader();
+      fr.onload = function () { ok(String(fr.result)); };
+      fr.onerror = bad;
+      fr.readAsText(f);
+    }
+  });
+})();
+</script>
+
+<!-- Snackbar：prify.js 的 snackbar() 需要这些节点，打开文件后给轻提示用 -->
+<div class="snackbar" id="snackbar"><span class="sb-bar"></span><span id="sbText"></span><button id="sbAction"></button></div>
+
+</body>
+</html>
